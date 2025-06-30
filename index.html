@@ -1357,7 +1357,7 @@
             }
         }
 
-        // VTT PARSING - Enhanced to handle edge cases
+        // VTT PARSING - Enhanced to handle edge cases and strip quotes
         function parseVTT(vttText) {
             const lines = vttText.split('\n');
             const cues = [];
@@ -1402,10 +1402,19 @@
                             }
                             
                             if (text.trim()) {
+                                // DEBUG: Log the original text before processing
+                                console.log(`[VTT DEBUG] Original text: "${text}"`);
+                                
+                                // Strip quotation marks from the text
+                                text = stripQuotationMarks(text.trim());
+                                
+                                // DEBUG: Log the text after stripping quotes
+                                console.log(`[VTT DEBUG] After stripping quotes: "${text}"`);
+                                
                                 cues.push({
                                     start: startSeconds,
                                     end: endSeconds,
-                                    text: text.trim()
+                                    text: text
                                 });
                             }
                         }
@@ -1415,6 +1424,12 @@
             }
             
             return cues;
+        }
+
+        // NEW FUNCTION: Strip various types of quotation marks
+        function stripQuotationMarks(text) {
+            // Comprehensive regex to match all types of quotation marks
+            return text.replace(/[\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F„""''‚'«»]/g, '');
         }
 
         function parseTimeToSeconds(timeStr) {
@@ -1569,6 +1584,7 @@
         function updateCurrentReferenceText() {
             if (vttCues.length > 0 && currentCueIndex >= 0 && currentCueIndex < vttCues.length) {
                 referenceText = vttCues[currentCueIndex].text;
+                console.log(`[DEBUG] Current reference text: "${referenceText}"`);
                 if (referenceTextDiv) referenceTextDiv.textContent = referenceText;
             }
         }
@@ -1632,7 +1648,76 @@
             setTimeout(sendHeightToParent, 500);
         }
 
-        // TEXT COMPARISON
+        // FIXED: LIVE FEEDBACK COMPARISON FUNCTION
+        function compareLiveFeedback(reference, userText) {
+            // Convert German characters in user input
+            userText = convertGermanChars(userText);
+            
+            const ignoreCase = ignoreCaseActive;
+            
+            // Normalize for comparison but keep original punctuation for display
+            let refForComparison = reference;
+            let userForComparison = userText;
+            
+            if (ignoreCase) {
+                refForComparison = refForComparison.toLowerCase();
+                userForComparison = userForComparison.toLowerCase();
+            }
+            
+            // Simple character-by-character comparison
+            const result = [];
+            const refChars = reference.split('');
+            const userChars = userText.split('');
+            
+            let refIndex = 0;
+            let userIndex = 0;
+            
+            while (refIndex < refChars.length || userIndex < userChars.length) {
+                const refChar = refChars[refIndex];
+                const userChar = userChars[userIndex];
+                const refCharForComp = ignoreCase ? (refChar || '').toLowerCase() : (refChar || '');
+                const userCharForComp = ignoreCase ? (userChar || '').toLowerCase() : (userChar || '');
+                
+                // Check if current reference character is punctuation
+                const isPunctuation = refChar && /[.,!?;:""''()„""''‚'«»]/.test(refChar);
+                
+                if (refIndex >= refChars.length) {
+                    // Extra characters from user
+                    result.push({ char: userChar, status: 'extra' });
+                    userIndex++;
+                } else if (userIndex >= userChars.length) {
+                    // Missing characters
+                    if (isPunctuation) {
+                        result.push({ char: refChar, status: 'punctuation' });
+                    } else {
+                        result.push({ char: '_', status: 'missing' });
+                    }
+                    refIndex++;
+                } else if (refCharForComp === userCharForComp) {
+                    // Characters match
+                    if (isPunctuation) {
+                        result.push({ char: refChar, status: 'punctuation' });
+                    } else {
+                        result.push({ char: userChar, status: 'correct' });
+                    }
+                    refIndex++;
+                    userIndex++;
+                } else if (isPunctuation) {
+                    // Reference has punctuation, user doesn't - show punctuation in gray and don't advance user
+                    result.push({ char: refChar, status: 'punctuation' });
+                    refIndex++;
+                } else {
+                    // Characters don't match
+                    result.push({ char: userChar, status: 'wrong' });
+                    refIndex++;
+                    userIndex++;
+                }
+            }
+            
+            return { chars: result };
+        }
+
+        // TEXT COMPARISON (KEEP ORIGINAL - WORKS PERFECTLY FOR RESULTS)
         function compareTexts(reference, userText) {
             userText = convertGermanChars(userText);
             
@@ -1643,8 +1728,9 @@
             let userNormalized = userText;
             
             if (ignorePunctuation) {
-                refNormalized = refNormalized.replace(/[.,!?;:""''()]/g, '');
-                userNormalized = userNormalized.replace(/[.,!?;:""''()]/g, '');
+                // Remove ALL punctuation marks including quotation marks
+                refNormalized = refNormalized.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '');
+                userNormalized = userNormalized.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '');
             }
             
             if (ignoreCase) {
@@ -1801,7 +1887,7 @@
             return alignment;
         }
 
-        // LIVE FEEDBACK
+        // UPDATED: LIVE FEEDBACK FUNCTION
         function updateLiveFeedback() {
             if (!userInput || !liveFeedback) return;
             
@@ -1812,7 +1898,8 @@
                 return;
             }
             
-            const comparison = compareTexts(referenceText, userText);
+            // Use the fixed live feedback comparison
+            const comparison = compareLiveFeedback(referenceText, userText);
             
             let feedbackHTML = '';
             
@@ -1820,13 +1907,7 @@
                 let char = item.char;
                 
                 if (char === ' ') {
-                    if (item.status === 'word-boundary') {
-                        char = '&nbsp;&nbsp;&nbsp;';
-                    } else if (item.status === 'char-space') {
-                        char = '&nbsp;';
-                    } else {
-                        char = '&nbsp;';
-                    }
+                    char = '&nbsp;';
                 } else if (char === '\n') {
                     char = '<br>';
                 }
@@ -1867,8 +1948,9 @@
             let userNormalized = userInput.value;
             
             if (ignorePunctuation) {
-                refNormalized = refNormalized.replace(/[.,!?;:""''()]/g, '');
-                userNormalized = userNormalized.replace(/[.,!?;:""''()]/g, '');
+                // Remove ALL punctuation marks including quotation marks
+                refNormalized = refNormalized.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '');
+                userNormalized = userNormalized.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '');
             }
             
             if (ignoreCase) {
@@ -2054,8 +2136,9 @@
             let userNormalized = convertGermanChars(result.userInput);
             
             if (ignorePunctuation) {
-                refNormalized = refNormalized.replace(/[.,!?;:""''()]/g, '');
-                userNormalized = userNormalized.replace(/[.,!?;:""''()]/g, '');
+                // Remove ALL punctuation marks including quotation marks
+                refNormalized = refNormalized.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '');
+                userNormalized = userNormalized.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '');
             }
             
             if (ignoreCase) {
