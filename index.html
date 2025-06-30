@@ -1650,71 +1650,154 @@
 
         // FIXED: LIVE FEEDBACK COMPARISON FUNCTION
         function compareLiveFeedback(reference, userText) {
-            // Convert German characters in user input
             userText = convertGermanChars(userText);
             
             const ignoreCase = ignoreCaseActive;
+            const ignorePunctuation = true;
             
-            // Normalize for comparison but keep original punctuation for display
-            let refForComparison = reference;
-            let userForComparison = userText;
+            let refNormalized = reference;
+            let userNormalized = userText;
             
-            if (ignoreCase) {
-                refForComparison = refForComparison.toLowerCase();
-                userForComparison = userForComparison.toLowerCase();
+            if (ignorePunctuation) {
+                refNormalized = refNormalized.replace(/[.,!?;:""''()]/g, '');
+                userNormalized = userNormalized.replace(/[.,!?;:""''()]/g, '');
             }
             
-            // Simple character-by-character comparison
+            if (ignoreCase) {
+                refNormalized = refNormalized.toLowerCase();
+                userNormalized = userNormalized.toLowerCase();
+            }
+            
+            userNormalized = userNormalized.replace(/\s+/g, ' ').trim();
+            
+            const refWords = refNormalized.split(/\s+/).filter(w => w.length > 0);
+            const userWords = userNormalized.split(/\s+/).filter(w => w.length > 0);
+            
+            const alignment = alignSequencesWithGaps(refWords, userWords);
+            
             const result = [];
-            const refChars = reference.split('');
-            const userChars = userText.split('');
+            let correct = 0;
+            let wrongPosition = 0;
+            let wrong = 0;
+            let extra = 0;
+            let missing = 0;
             
-            let refIndex = 0;
-            let userIndex = 0;
-            
-            while (refIndex < refChars.length || userIndex < userChars.length) {
-                const refChar = refChars[refIndex];
-                const userChar = userChars[userIndex];
-                const refCharForComp = ignoreCase ? (refChar || '').toLowerCase() : (refChar || '');
-                const userCharForComp = ignoreCase ? (userChar || '').toLowerCase() : (userChar || '');
+            for (let i = 0; i < alignment.length; i++) {
+                const item = alignment[i];
                 
-                // Check if current reference character is punctuation
-                const isPunctuation = refChar && /[.,!?;:""''()„""''‚'«»]/.test(refChar);
+                if (i > 0) {
+                    result.push({ char: ' ', status: 'word-boundary' });
+                }
                 
-                if (refIndex >= refChars.length) {
-                    // Extra characters from user
-                    result.push({ char: userChar, status: 'extra' });
-                    userIndex++;
-                } else if (userIndex >= userChars.length) {
-                    // Missing characters
-                    if (isPunctuation) {
-                        result.push({ char: refChar, status: 'punctuation' });
-                    } else {
+                if (item.type === 'match') {
+                    for (let char of item.userWord) {
+                        result.push({ char, status: 'correct' });
+                        correct++;
+                    }
+                } else if (item.type === 'substitute') {
+                    const ref = item.refWord;
+                    const user = item.userWord;
+
+                    let missingPrefix = 0;
+                    let missingSuffix = 0;
+
+                    for (let idx = 1; idx <= ref.length; idx++) {
+                        if (ref.slice(-idx) === user) {
+                            missingPrefix = ref.length - idx;
+                            break;
+                        }
+                    }
+                    if (missingPrefix === 0) {
+                        for (let idx = 1; idx <= ref.length; idx++) {
+                            if (ref.slice(0, idx) === user) {
+                                missingSuffix = ref.length - idx;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (missingPrefix > 0) {
+                        for (let k = 0; k < missingPrefix; k++) {
+                            if (k > 0) result.push({ char: ' ', status: 'char-space' });
+                            result.push({ char: '_', status: 'missing' });
+                            missing++;
+                        }
+                    }
+
+                    for (let c = 0; c < user.length; c++) {
+                        result.push({ char: user[c], status: 'wrong' });
+                        wrong++;
+                    }
+
+                    if (missingSuffix > 0) {
+                        for (let k = 0; k < missingSuffix; k++) {
+                            result.push({ char: ' ', status: 'char-space' });
+                            result.push({ char: '_', status: 'missing' });
+                            missing++;
+                        }
+                    }
+
+                } else if (item.type === 'insert') {
+                    for (let char of item.userWord) {
+                        result.push({ char, status: 'extra' });
+                        extra++;
+                    }
+                } else if (item.type === 'delete') {
+                    const wordLength = item.refWord.length;
+                    
+                    for (let k = 0; k < wordLength; k++) {
+                        if (k > 0) {
+                            result.push({ char: ' ', status: 'char-space' });
+                        }
                         result.push({ char: '_', status: 'missing' });
+                        missing++;
                     }
-                    refIndex++;
-                } else if (refCharForComp === userCharForComp) {
-                    // Characters match
-                    if (isPunctuation) {
-                        result.push({ char: refChar, status: 'punctuation' });
-                    } else {
-                        result.push({ char: userChar, status: 'correct' });
-                    }
-                    refIndex++;
-                    userIndex++;
-                } else if (isPunctuation) {
-                    // Reference has punctuation, user doesn't - show punctuation in gray and don't advance user
-                    result.push({ char: refChar, status: 'punctuation' });
-                    refIndex++;
-                } else {
-                    // Characters don't match
-                    result.push({ char: userChar, status: 'wrong' });
-                    refIndex++;
-                    userIndex++;
                 }
             }
             
-            return { chars: result };
+            // Now add punctuation display from the original reference text
+            const originalRefChars = reference.split('');
+            const resultWithPunctuation = [];
+            let resultIndex = 0;
+            
+            for (let i = 0; i < originalRefChars.length; i++) {
+                const refChar = originalRefChars[i];
+                const isPunctuation = /[.,!?;:""''()„""''‚'«»]/.test(refChar);
+                
+                if (isPunctuation) {
+                    resultWithPunctuation.push({ char: refChar, status: 'punctuation' });
+                } else if (refChar === ' ') {
+                    // Find the next non-space result item
+                    while (resultIndex < result.length && (result[resultIndex].char === ' ' || result[resultIndex].status === 'word-boundary' || result[resultIndex].status === 'char-space')) {
+                        resultWithPunctuation.push(result[resultIndex]);
+                        resultIndex++;
+                    }
+                } else {
+                    // Regular character
+                    if (resultIndex < result.length) {
+                        resultWithPunctuation.push(result[resultIndex]);
+                        resultIndex++;
+                    }
+                }
+            }
+            
+            // Add any remaining result items
+            while (resultIndex < result.length) {
+                resultWithPunctuation.push(result[resultIndex]);
+                resultIndex++;
+            }
+            
+            return {
+                chars: resultWithPunctuation,
+                stats: { 
+                    correct, 
+                    wrongPosition, 
+                    wrong, 
+                    extra,
+                    missing,
+                    total: refNormalized.replace(/\s/g, '').length 
+                }
+            };
         }
 
         // TEXT COMPARISON (KEEP ORIGINAL - WORKS PERFECTLY FOR RESULTS)
@@ -1907,7 +1990,13 @@
                 let char = item.char;
                 
                 if (char === ' ') {
-                    char = '&nbsp;';
+                    if (item.status === 'word-boundary') {
+                        char = '&nbsp;&nbsp;&nbsp;';
+                    } else if (item.status === 'char-space') {
+                        char = '&nbsp;';
+                    } else {
+                        char = '&nbsp;';
+                    }
                 } else if (char === '\n') {
                     char = '<br>';
                 }
