@@ -394,21 +394,25 @@
         }
         
         .live-feedback {
-            min-height:56px;
-            padding:18px 22px;
-            background: linear-gradient(135deg, #ecfdf5 0%, #fef3ff 100%); 
-            border: none; 
-            border-radius: 16px;
-            font-size:22px;
-            line-height:1.3;
-            white-space:pre-wrap; 
-            word-break:break-word;
-            color: #9ca3af;
-            box-shadow: 0 4px 16px rgba(167, 139, 250, 0.1);
-            display: block;
-            width: 100%;
-            box-sizing: border-box;
-        }
+    min-height:56px;
+    padding:18px 22px;
+    background: linear-gradient(135deg, #ecfdf5 0%, #fef3ff 100%); 
+    border: none; 
+    border-radius: 16px;
+    font-size:22px;
+    line-height:1.3;
+    white-space: pre-wrap; 
+    word-break:break-word;
+    color: #9ca3af;
+    box-shadow: 0 4px 16px rgba(167, 139, 250, 0.1);
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.live-feedback span {
+    white-space: pre-wrap;
+}
 
         .char-correct{color:#059669;font-weight:500;} 
         .char-wrong-position{color:#d97706;font-weight:500;} 
@@ -416,6 +420,7 @@
         .char-missing{color:#d97706;font-style:italic;font-weight:500;} 
         .char-extra{color:#2563eb;font-weight:500;} 
         .char-word-boundary,.char-char-space{color:#9ca3af;}
+        .char-punctuation{color:#9ca3af;font-weight:400;}
 
         .options { 
             display: none;
@@ -616,6 +621,11 @@
             background: rgba(37, 99, 235, 0.1);
             padding: 2px 4px;
             border-radius: 4px;
+        }
+
+        .result-punctuation {
+            color: #9ca3af;
+            font-weight: 400;
         }
 
         .word-tooltip {
@@ -948,6 +958,7 @@
     </div>
 
     <script>
+        // Cache busting comment - v2.1 - Punctuation and word spacing fixes
         // MODERN AUTO-RESIZE SYSTEM: ResizeObserver + Fallback
         let lastReportedHeight = 0;
         let resizeTimeout = null;
@@ -1631,19 +1642,23 @@
             setTimeout(sendHeightToParent, 500);
         }
 
-        // TEXT COMPARISON
+        // FIXED TEXT COMPARISON WITH PROPER PUNCTUATION HANDLING
         function compareTexts(reference, userText) {
             userText = convertGermanChars(userText);
             
             const ignoreCase = ignoreCaseActive;
-            const ignorePunctuation = true;
+            const ignorePunctuation = true; // Always ignore punctuation for evaluation
             
+            // Keep original reference with punctuation for display
+            const originalReference = reference;
+            
+            // Create normalized versions for comparison (without punctuation)
             let refNormalized = reference;
             let userNormalized = userText;
             
             if (ignorePunctuation) {
-                refNormalized = refNormalized.replace(/[.,!?;:""''()]/g, '');
-                userNormalized = userNormalized.replace(/[.,!?;:""''()]/g, '');
+                refNormalized = refNormalized.replace(/[.,!?;:\u0022\u0027\u2018-\u201F\u2039\u203A\u00AB\u00BB\u275B-\u275E\u300C-\u300F()]/g, '');
+                userNormalized = userNormalized.replace(/[.,!?;:\u0022\u0027\u2018-\u201F\u2039\u203A\u00AB\u00BB\u275B-\u275E\u300C-\u300F()]/g, '');
             }
             
             if (ignoreCase) {
@@ -1652,11 +1667,23 @@
             }
             
             userNormalized = userNormalized.replace(/\s+/g, ' ').trim();
+            refNormalized = refNormalized.replace(/\s+/g, ' ').trim();
             
             const refWords = refNormalized.split(/\s+/).filter(w => w.length > 0);
             const userWords = userNormalized.split(/\s+/).filter(w => w.length > 0);
             
+            // Get alignment based on normalized text
             const alignment = alignSequencesWithGaps(refWords, userWords);
+            
+            // Now create display result using original reference with punctuation
+            const result = createDisplayResult(originalReference, alignment, refWords, userWords);
+            
+            return result;
+        }
+
+        function createDisplayResult(originalReference, alignment, refWords, userWords) {
+            // Split original reference into tokens (words and punctuation)
+            const originalTokens = tokenizeWithPunctuation(originalReference);
             
             const result = [];
             let correct = 0;
@@ -1665,6 +1692,9 @@
             let extra = 0;
             let missing = 0;
             
+            let refWordIndex = 0;
+            let originalTokenIndex = 0;
+            
             for (let i = 0; i < alignment.length; i++) {
                 const item = alignment[i];
                 
@@ -1672,11 +1702,22 @@
                     result.push({ char: ' ', status: 'word-boundary' });
                 }
                 
+                // Add any punctuation before this word from original reference
+                while (originalTokenIndex < originalTokens.length && 
+                       originalTokens[originalTokenIndex].type === 'punctuation') {
+                    const punctChar = originalTokens[originalTokenIndex].value;
+                    result.push({ char: punctChar, status: 'punctuation' });
+                    originalTokenIndex++;
+                }
+                
                 if (item.type === 'match') {
                     for (let char of item.userWord) {
                         result.push({ char, status: 'correct' });
                         correct++;
                     }
+                    refWordIndex++;
+                    originalTokenIndex; // Skip the matched word token
+                    
                 } else if (item.type === 'substitute') {
                     const ref = item.refWord;
                     const user = item.userWord;
@@ -1719,12 +1760,17 @@
                             missing++;
                         }
                     }
+                    
+                    refWordIndex++;
+                    originalTokenIndex++; // Skip the substituted word token
 
                 } else if (item.type === 'insert') {
                     for (let char of item.userWord) {
                         result.push({ char, status: 'extra' });
                         extra++;
                     }
+                    // Don't increment refWordIndex or originalTokenIndex for inserts
+                    
                 } else if (item.type === 'delete') {
                     const wordLength = item.refWord.length;
                     
@@ -1735,7 +1781,18 @@
                         result.push({ char: '_', status: 'missing' });
                         missing++;
                     }
+                    
+                    refWordIndex++;
+                    originalTokenIndex++; // Skip the deleted word token
                 }
+            }
+            
+            // Add any remaining punctuation at the end
+            while (originalTokenIndex < originalTokens.length && 
+                   originalTokens[originalTokenIndex].type === 'punctuation') {
+                const punctChar = originalTokens[originalTokenIndex].value;
+                result.push({ char: punctChar, status: 'punctuation' });
+                originalTokenIndex++;
             }
             
             return {
@@ -1746,9 +1803,44 @@
                     wrong, 
                     extra,
                     missing,
-                    total: refNormalized.replace(/\s/g, '').length 
+                    total: refWords.join('').length 
                 }
             };
+        }
+
+        function tokenizeWithPunctuation(text) {
+            const tokens = [];
+            let currentWord = '';
+            
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                
+                if (/[.,!?;:""''()]/.test(char)) {
+                    // If we have a current word, add it
+                    if (currentWord.trim()) {
+                        tokens.push({ type: 'word', value: currentWord.trim() });
+                        currentWord = '';
+                    }
+                    // Add punctuation
+                    tokens.push({ type: 'punctuation', value: char });
+                } else if (/\s/.test(char)) {
+                    // If we have a current word, add it
+                    if (currentWord.trim()) {
+                        tokens.push({ type: 'word', value: currentWord.trim() });
+                        currentWord = '';
+                    }
+                    // Skip whitespace (it will be added as word boundaries)
+                } else {
+                    currentWord += char;
+                }
+            }
+            
+            // Add final word if any
+            if (currentWord.trim()) {
+                tokens.push({ type: 'word', value: currentWord.trim() });
+            }
+            
+            return tokens;
         }
 
         function alignSequencesWithGaps(refWords, userWords) {
@@ -1811,28 +1903,45 @@
                 return;
             }
             
-            const comparison = compareTexts(referenceText, userText);
-            
+            // Simple character-by-character comparison preserving original spacing
             let feedbackHTML = '';
+            const reference = referenceText;
             
-            comparison.chars.forEach(item => {
-                let char = item.char;
-                
-                if (char === ' ') {
-                    if (item.status === 'word-boundary') {
-                        char = '&nbsp;&nbsp;&nbsp;';
-                    } else if (item.status === 'char-space') {
-                        char = '&nbsp;';
+            for (let i = 0; i < reference.length; i++) {
+                if (i < userText.length) {
+                    const refChar = ignoreCaseActive ? reference[i].toLowerCase() : reference[i];
+                    const userChar = ignoreCaseActive ? userText[i].toLowerCase() : userText[i];
+                    
+                    if (refChar === userChar) {
+                        feedbackHTML += `<span class="char-correct">${reference[i]}</span>`;
                     } else {
-                        char = '&nbsp;';
+                        feedbackHTML += `<span class="char-wrong">${userText[i]}</span>`;
                     }
-                } else if (char === '\n') {
-                    char = '<br>';
+                } else {
+    // Missing characters - show underscore but preserve spaces as spaces
+    if (reference[i] === ' ') {
+        // Use a regular space but wrap it in a span with specific width
+        feedbackHTML += '<span style="display: inline-block; width: 2ch;">&nbsp;</span>';
+} else if (/[.,!?;:\u0022\u0027\u2018-\u201F\u2039\u203A\u00AB\u00BB\u275B-\u275E\u300C-\u300F()]/.test(reference[i])) {        feedbackHTML += `<span class="char-punctuation">${reference[i]}</span>`;
+    } else {
+        // Keep your working underscore logic
+        let nextIsSpace = (i + 1 < reference.length && reference[i + 1] === ' ');
+        if (nextIsSpace) {
+            feedbackHTML += `<span class="char-missing">_</span>`;
+        } else {
+            feedbackHTML += `<span class="char-missing">_ </span>`;
+        }
+    }
+}
+
+                // Handle extra characters user typed beyond reference length
+                if (userText.length > reference.length) {
+                    for (let i = reference.length; i < userText.length; i++) {
+                        feedbackHTML += `<span class="char-extra">${userText[i]}</span>`;
+                    }
                 }
-                
-                feedbackHTML += `<span class="char-${item.status}">${char}</span>`;
-            });
-            
+            }
+
             liveFeedback.innerHTML = feedbackHTML;
         }
 
@@ -1860,15 +1969,17 @@
         // WORD STATISTICS
         function calculateWordStats(comparison) {
             const ignoreCase = ignoreCaseActive;
-            const ignorePunctuation = true;
+            const ignorePunctuation = true; // Always ignore punctuation
             
             let refNormalized = referenceText;
             let userNormalized = userInput.value;
             
             if (ignorePunctuation) {
-                refNormalized = refNormalized.replace(/[.,!?;:""''()]/g, '');
-                userNormalized = userNormalized.replace(/[.,!?;:""''()]/g, '');
-            }
+    if (ignorePunctuation) {
+    refNormalized = refNormalized.replace(/[.,!?;:\u0022\u0027\u2018-\u201F\u2039\u203A\u00AB\u00BB\u275B-\u275E\u300C-\u300F()]/g, '');
+    userNormalized = userNormalized.replace(/[.,!?;:\u0022\u0027\u2018-\u201F\u2039\u203A\u00AB\u00BB\u275B-\u275E\u300C-\u300F()]/g, '');
+}
+}
             
             if (ignoreCase) {
                 refNormalized = refNormalized.toLowerCase();
@@ -1876,6 +1987,7 @@
             }
             
             userNormalized = userNormalized.replace(/\s+/g, ' ').trim();
+            refNormalized = refNormalized.replace(/\s+/g, ' ').trim();
             
             const refWords = refNormalized.split(/\s+/).filter(w => w.length > 0);
             const userWords = userNormalized.split(/\s+/).filter(w => w.length > 0);
@@ -2007,10 +2119,6 @@
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `${lessonId}-results.csv`;
-                
-                console.log('Creating download link:', link.download);
-                
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -2023,19 +2131,39 @@
             }
         }
 
-        // DETAILED RESULTS
+        // DETAILED RESULTS WITH PROPER PUNCTUATION HANDLING
+
         function showDetailedResults() {
+            console.log('DEBUG: showDetailedResults called');
+            console.log('DEBUG: sessionResults:', sessionResults);
+            
             const sentenceResultsDiv = document.getElementById('sentenceResults');
             const sentencesContainer = document.getElementById('sentencesContainer');
             
-            if (!sentenceResultsDiv || !sentencesContainer) return;
+            console.log('DEBUG: sentenceResultsDiv:', sentenceResultsDiv);
+            console.log('DEBUG: sentencesContainer:', sentencesContainer);
+            
+            if (!sentenceResultsDiv || !sentencesContainer) {
+                console.log('DEBUG: Missing DOM elements');
+                return;
+            }
             
             sentencesContainer.innerHTML = '';
             
             sessionResults.forEach((result, index) => {
+                console.log(`DEBUG: Processing result ${index}:`, result);
+                
                 const sentenceDiv = document.createElement('div');
                 sentenceDiv.className = 'sentence-result';
-                sentenceDiv.innerHTML = generateResultHTML(result);
+                
+                try {
+                    const resultHTML = generateResultHTML(result);
+                    console.log(`DEBUG: Generated HTML for result ${index}:`, resultHTML);
+                    sentenceDiv.innerHTML = resultHTML;
+                } catch (error) {
+                    console.error(`DEBUG: Error generating HTML for result ${index}:`, error);
+                    sentenceDiv.innerHTML = `<span style="color: red;">Error processing sentence ${index + 1}</span>`;
+                }
                 
                 sentencesContainer.appendChild(sentenceDiv);
             });
@@ -2043,50 +2171,122 @@
             addTooltipListeners();
             
             sentenceResultsDiv.style.display = 'block';
+            console.log('DEBUG: showDetailedResults completed');
         }
 
         function generateResultHTML(result) {
+            console.log('=== generateResultHTML START ===');
+            console.log('Input result:', result);
+
             const ignoreCase = ignoreCaseActive;
             const ignorePunctuation = true;
-            
+
             let refNormalized = result.reference;
             let userNormalized = convertGermanChars(result.userInput);
-            
+
+            const originalReference = result.reference;
+            console.log('DEBUG: originalReference:', originalReference);
+
             if (ignorePunctuation) {
-                refNormalized = refNormalized.replace(/[.,!?;:""''()]/g, '');
-                userNormalized = userNormalized.replace(/[.,!?;:""''()]/g, '');
+                refNormalized = refNormalized.replace(/[.,!?;:\u0022\u0027\u2018-\u201F\u2039\u203A\u00AB\u00BB\u275B-\u275E\u300C-\u300F()]/g, '');
+                userNormalized = userNormalized.replace(/[.,!?;:\u0022\u0027\u2018-\u201F\u2039\u203A\u00AB\u00BB\u275B-\u275E\u300C-\u300F()]/g, '');
             }
-            
+
             if (ignoreCase) {
                 refNormalized = refNormalized.toLowerCase();
                 userNormalized = userNormalized.toLowerCase();
             }
-            
+
             userNormalized = userNormalized.replace(/\s+/g, ' ').trim();
-            
+            refNormalized = refNormalized.replace(/\s+/g, ' ').trim();
+
             const refWords = refNormalized.split(/\s+/).filter(w => w.length > 0);
             const userWords = userNormalized.split(/\s+/).filter(w => w.length > 0);
-            
+
+            console.log('DEBUG: refWords:', refWords);
+            console.log('DEBUG: userWords:', userWords);
+
             const alignment = alignSequencesWithGaps(refWords, userWords);
-            
+            console.log('DEBUG: alignment:', alignment);
+
             let html = '';
-            
-            alignment.forEach((item, index) => {
-                if (index > 0) html += ' ';
+            let alignmentIndex = 0;
+
+            // Split original reference into tokens (words and non-word content)
+            const tokens = [];
+            let currentToken = '';
+            let isInWord = false;
+
+            for (let i = 0; i < originalReference.length; i++) {
+                const char = originalReference[i];
+                const charIsWordChar = /[a-zA-ZäöüÄÖÜß]/.test(char);
                 
-                if (item.type === 'match') {
-                    html += `<span class="result-word-correct">${item.userWord}</span>`;
-                } else if (item.type === 'substitute') {
-                    html += `<span class="result-word-wrong" data-correct="${item.refWord}">${item.userWord}</span>`;
-                } else if (item.type === 'insert') {
-                    html += `<span class="result-word-extra">${item.userWord}</span>`;
-                } else if (item.type === 'delete') {
-                    // Create individual underscores with spaces between them
-                    const individualUnderscores = item.refWord.split('').map(() => '_').join(' ');
-                    html += `<span class="result-word-missing" data-missing="${item.refWord}">${individualUnderscores}</span>`;
+                if (charIsWordChar !== isInWord) {
+                    if (currentToken) {
+                        tokens.push({
+                            content: currentToken,
+                            isWord: isInWord
+                        });
+                    }
+                    currentToken = char;
+                    isInWord = charIsWordChar;
+                } else {
+                    currentToken += char;
                 }
-            });
+            }
             
+            // Don't forget the last token
+            if (currentToken) {
+                tokens.push({
+                    content: currentToken,
+                    isWord: isInWord
+                });
+            }
+
+            console.log('DEBUG: tokens:', tokens);
+
+            // Process each token
+            for (const token of tokens) {
+                if (!token.isWord) {
+                    // Non-word content (spaces, punctuation) - add as-is
+                    if (/[.,!?;:\u0022\u0027\u2018-\u201F\u2039\u203A\u00AB\u00BB\u275B-\u275E\u300C-\u300F()]/.test(token.content)) {
+                        html += `<span class="result-punctuation">${token.content}</span>`;
+                    } else {
+                        html += token.content; // spaces and other whitespace
+                    }
+                } else {
+                    // Word content - check alignment
+                    if (alignmentIndex < alignment.length) {
+                        const alignmentItem = alignment[alignmentIndex];
+                        
+                        if (alignmentItem.type === 'match') {
+                            html += `<span class="result-word-correct">${token.content}</span>`;
+                        } else if (alignmentItem.type === 'substitute') {
+                            html += `<span class="result-word-wrong" data-correct="${token.content}">${alignmentItem.userWord}</span>`;
+                        } else if (alignmentItem.type === 'delete') {
+                            // Create underscores that match the length of the original word
+                            const underscores = '_'.repeat(token.content.length);
+                            html += `<span class="result-word-missing" data-missing="${token.content}">${underscores}</span>`;
+                        }
+                        alignmentIndex++;
+                    } else {
+                        // No more alignment items - treat as missing
+                        const underscores = '_'.repeat(token.content.length);
+                        html += `<span class="result-word-missing" data-missing="${token.content}">${underscores}</span>`;
+                    }
+                }
+            }
+
+            // Handle any extra user words (insertions)
+            while (alignmentIndex < alignment.length) {
+                const alignmentItem = alignment[alignmentIndex];
+                if (alignmentItem.type === 'insert') {
+                    html += ` <span class="result-word-extra">${alignmentItem.userWord}</span>`;
+                }
+                alignmentIndex++;
+            }
+    
+            console.log('DEBUG: Final HTML:', html);
             return html;
         }
 
@@ -2155,7 +2355,6 @@
         // HINT SYSTEM
         function showHint() {
             if (!referenceText) return;
-
             
             const hintDisplay = document.getElementById('hintDisplay');
             const hintContent = document.getElementById('hintContent');
