@@ -2165,7 +2165,7 @@
                     html += `<span class="result-word-extra">${item.userWord}</span>`;
                     // Extra words don't advance the punctuation index
                 } else if (item.type === 'delete') {
-                    // Create individual underscores with spaces between them
+                    // Show each missing word with character-by-character underscores, clearly separated
                     const individualUnderscores = item.refWord.split('').map(() => '_').join(' ');
                     html += `<span class="result-word-missing" data-missing="${item.refWord}">${individualUnderscores}</span>`;
                     // Add punctuation for this missing word
