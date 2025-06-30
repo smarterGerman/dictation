@@ -1818,7 +1818,7 @@
             return alignment;
         }
 
-        // LIVE FEEDBACK - Use original compareTexts but show punctuation separately
+        // LIVE FEEDBACK - Show punctuation in correct positions using VTT reference
         function updateLiveFeedback() {
             if (!userInput || !liveFeedback) return;
             
@@ -1829,14 +1829,40 @@
                 return;
             }
             
-            // Use the original working comparison system
+            // Get comparison using the stripped text (no punctuation)
             const comparison = compareTexts(referenceText, userText);
             
-            let feedbackHTML = '';
+            // Now insert punctuation from original VTT text at correct positions
+            const originalText = referenceText; // This has punctuation
+            const strippedText = referenceText.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '');
             
-            comparison.chars.forEach(item => {
+            // Create a mapping of positions in stripped text to original text
+            const punctuationMap = [];
+            let strippedIndex = 0;
+            
+            for (let i = 0; i < originalText.length; i++) {
+                const char = originalText[i];
+                const isPunctuation = /[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/.test(char);
+                
+                if (isPunctuation) {
+                    punctuationMap.push({
+                        position: strippedIndex,
+                        char: char,
+                        insertAfter: true // Insert after the character at this position
+                    });
+                } else {
+                    strippedIndex++;
+                }
+            }
+            
+            // Build the feedback HTML
+            let feedbackHTML = '';
+            let charCount = 0;
+            
+            comparison.chars.forEach((item, index) => {
                 let char = item.char;
                 
+                // Handle spacing
                 if (char === ' ') {
                     if (item.status === 'word-boundary') {
                         char = '&nbsp;&nbsp;&nbsp;';
@@ -1850,17 +1876,24 @@
                 }
                 
                 feedbackHTML += `<span class="char-${item.status}">${char}</span>`;
+                
+                // Count actual characters (not spaces or formatting)
+                if (item.status !== 'word-boundary' && item.status !== 'char-space' && char !== '&nbsp;&nbsp;&nbsp;' && char !== '&nbsp;') {
+                    charCount++;
+                    
+                    // Check if we need to insert punctuation after this character
+                    const punctToInsert = punctuationMap.filter(p => p.position === charCount - 1 && p.insertAfter);
+                    punctToInsert.forEach(punct => {
+                        feedbackHTML += `<span class="char-punctuation">${punct.char}</span>`;
+                    });
+                }
             });
             
-            // Now add punctuation at the end in gray (simple approach)
-            const punctuationMatches = referenceText.match(/[.,!?;:""''()„""''‚'«»]/g);
-            if (punctuationMatches && punctuationMatches.length > 0) {
-                feedbackHTML += '&nbsp;&nbsp;';
-                punctuationMatches.forEach((punct, index) => {
-                    if (index > 0) feedbackHTML += '&nbsp;';
-                    feedbackHTML += `<span class="char-punctuation">${punct}</span>`;
-                });
-            }
+            // Add any remaining punctuation at the end
+            const remainingPunct = punctuationMap.filter(p => p.position >= charCount);
+            remainingPunct.forEach(punct => {
+                feedbackHTML += `<span class="char-punctuation">${punct.char}</span>`;
+            });
             
             liveFeedback.innerHTML = feedbackHTML;
         }
