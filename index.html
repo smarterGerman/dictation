@@ -1818,7 +1818,7 @@
             return alignment;
         }
 
-        // LIVE FEEDBACK - Show punctuation in correct positions using VTT reference
+        // LIVE FEEDBACK - Better punctuation positioning using word-based mapping
         function updateLiveFeedback() {
             if (!userInput || !liveFeedback) return;
             
@@ -1832,32 +1832,27 @@
             // Get comparison using the stripped text (no punctuation)
             const comparison = compareTexts(referenceText, userText);
             
-            // Now insert punctuation from original VTT text at correct positions
-            const originalText = referenceText; // This has punctuation
-            const strippedText = referenceText.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '');
+            // Build word-to-punctuation mapping from original text
+            const originalText = referenceText;
+            const words = originalText.split(/\s+/);
+            const wordPunctuation = [];
             
-            // Create a mapping of positions in stripped text to original text
-            const punctuationMap = [];
-            let strippedIndex = 0;
-            
-            for (let i = 0; i < originalText.length; i++) {
-                const char = originalText[i];
-                const isPunctuation = /[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/.test(char);
+            words.forEach(word => {
+                // Extract punctuation from the end of each word
+                const punctMatch = word.match(/([.,!?;:""''()„""''‚'«»]+)$/);
+                const cleanWord = word.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]+/g, '');
                 
-                if (isPunctuation) {
-                    punctuationMap.push({
-                        position: strippedIndex,
-                        char: char,
-                        insertAfter: true // Insert after the character at this position
-                    });
-                } else {
-                    strippedIndex++;
-                }
-            }
+                wordPunctuation.push({
+                    word: cleanWord,
+                    punctuation: punctMatch ? punctMatch[1] : ''
+                });
+            });
             
-            // Build the feedback HTML
+            // Build the feedback HTML with punctuation insertion
             let feedbackHTML = '';
-            let charCount = 0;
+            let currentWordIndex = 0;
+            let isInWord = false;
+            let currentWordComplete = false;
             
             comparison.chars.forEach((item, index) => {
                 let char = item.char;
@@ -1865,7 +1860,13 @@
                 // Handle spacing
                 if (char === ' ') {
                     if (item.status === 'word-boundary') {
+                        // End of word - add punctuation if any
+                        if (currentWordIndex < wordPunctuation.length && wordPunctuation[currentWordIndex].punctuation) {
+                            feedbackHTML += `<span class="char-punctuation">${wordPunctuation[currentWordIndex].punctuation}</span>`;
+                        }
+                        currentWordIndex++;
                         char = '&nbsp;&nbsp;&nbsp;';
+                        isInWord = false;
                     } else if (item.status === 'char-space') {
                         char = '&nbsp;';
                     } else {
@@ -1873,27 +1874,18 @@
                     }
                 } else if (char === '\n') {
                     char = '<br>';
+                } else {
+                    // Regular character - we're in a word
+                    isInWord = true;
                 }
                 
                 feedbackHTML += `<span class="char-${item.status}">${char}</span>`;
-                
-                // Count actual characters (not spaces or formatting)
-                if (item.status !== 'word-boundary' && item.status !== 'char-space' && char !== '&nbsp;&nbsp;&nbsp;' && char !== '&nbsp;') {
-                    charCount++;
-                    
-                    // Check if we need to insert punctuation after this character
-                    const punctToInsert = punctuationMap.filter(p => p.position === charCount - 1 && p.insertAfter);
-                    punctToInsert.forEach(punct => {
-                        feedbackHTML += `<span class="char-punctuation">${punct.char}</span>`;
-                    });
-                }
             });
             
-            // Add any remaining punctuation at the end
-            const remainingPunct = punctuationMap.filter(p => p.position >= charCount);
-            remainingPunct.forEach(punct => {
-                feedbackHTML += `<span class="char-punctuation">${punct.char}</span>`;
-            });
+            // Add punctuation for the last word if we ended in a word
+            if (isInWord && currentWordIndex < wordPunctuation.length && wordPunctuation[currentWordIndex].punctuation) {
+                feedbackHTML += `<span class="char-punctuation">${wordPunctuation[currentWordIndex].punctuation}</span>`;
+            }
             
             liveFeedback.innerHTML = feedbackHTML;
         }
