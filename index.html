@@ -2169,6 +2169,13 @@
                     // Show each missing word with character-by-character underscores, clearly separated
                     const individualUnderscores = item.refWord.split('').map(() => '_').join(' ');
                     html += `<span class="result-word-missing" data-missing="${item.refWord}">${individualUnderscores}</span>`;
+                    
+                    // Add WIDE spacing between consecutive missing words for clear visual separation
+                    const nextItem = alignment[index + 1];
+                    if (nextItem && nextItem.type === 'delete') {
+                        html += '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'; // 10 spaces = wide gap
+                    }
+                    
                     // Add punctuation for this missing word
                     if (currentWordIndex < wordPunctuation.length && wordPunctuation[currentWordIndex].punctuation) {
                         html += `<span class="char-punctuation">${wordPunctuation[currentWordIndex].punctuation}</span>`;
