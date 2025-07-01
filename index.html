@@ -1574,6 +1574,8 @@
             
             if (statsSection) statsSection.style.display = 'none';
             
+            // DON'T reset the case sensitivity toggle - let it persist
+            
             setTimeout(sendHeightToParent, 100);
         }
 
@@ -2288,6 +2290,13 @@
             sentenceStartTime = null;
             totalSessionTime = 0;
             sessionResults = [];
+            
+            // Reset case sensitivity toggle to default (OFF)
+            ignoreCaseActive = true;
+            if (ignoreCaseBtn) {
+                ignoreCaseBtn.classList.remove('active');
+                ignoreCaseBtn.title = "Capitalization checking OFF";
+            }
             
             // Reset audio
             if (audioPlayer) {
