@@ -875,6 +875,28 @@
             background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
             transform: translateY(-2px);
         }
+
+        .focus-icon {
+    width: 18px;
+    height: 18px;
+    position: relative;
+    display: inline-block;
+}
+
+.focus-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 18px;
+    height: 18px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    box-shadow: 
+        inset 0 0 0 2px currentColor,
+        inset 0 0 0 5px transparent,
+        inset 0 0 0 7px currentColor;
+}
     </style>
 </head>
 <body>
@@ -887,8 +909,11 @@
                         <button class="nav-btn" id="prevBtn" title="Previous sentence">‹</button>
                         <button class="play-btn" id="playBtn"></button>
                         <button class="nav-btn" id="nextBtn" title="Next sentence">›</button>
-                        <button class="toggle-btn" id="ignoreCaseBtn" title="Capitalization checking OFF">Aa</button>
-                        <button class="toggle-btn" id="speedBtn" title="Playback Speed">100</button>
+                       <button class="toggle-btn" id="ignoreCaseBtn" title="Capitalization checking OFF">Aa</button>
+<button class="toggle-btn" id="focusModeBtn" title="Focus Mode OFF - Show live feedback">
+    <span class="focus-icon"></span>
+</button>
+<button class="toggle-btn" id="speedBtn" title="Playback Speed">100</button>
                     </div>
                     
                     <!-- Progress bar and controls row -->
@@ -1031,7 +1056,7 @@
         // DOM ELEMENTS
         let audioPlayer, playBtn, progressBar, timeDisplay, referenceTextDiv, statsSection;
         let userInput, liveFeedback, accuracyPercent, correctWords, wrongWords;
-        let endDictationBtn, ignoreCaseBtn, hintBtn, speedBtn;
+        let endDictationBtn, ignoreCaseBtn, hintBtn, speedBtn, focusModeBtn;
         let prevBtn, nextBtn, exportCsvBtn;
 
         // GLOBAL STATE
@@ -1046,7 +1071,8 @@
         let totalSessionTime = 0;
         let sessionResults = [];
         let ignoreCaseActive = true;
-        let currentSpeed = 1.0;
+let focusModeActive = false;
+let currentSpeed = 1.0;
 
         const initialPlaceholderText = "Shift+Cmd+Enter = Play/Pause\nae = ä | oe = ö | ue = ü | B = ß\nType here...";
 
@@ -1089,6 +1115,7 @@
             ignoreCaseBtn = document.getElementById('ignoreCaseBtn');
             speedBtn = document.getElementById('speedBtn');
             hintBtn = document.getElementById('hintBtn');
+            focusModeBtn = document.getElementById('focusModeBtn');
             prevBtn = document.getElementById('prevBtn');
             nextBtn = document.getElementById('nextBtn');
             exportCsvBtn = document.getElementById('exportCsvBtn');
@@ -1122,6 +1149,11 @@
             
             if (hintBtn) {
                 hintBtn.addEventListener('click', showHint);
+            if (focusModeBtn) {
+                focusModeBtn.addEventListener('click', toggleFocusMode);
+                focusModeBtn.classList.remove('active');
+                focusModeBtn.title = "Focus Mode OFF - Show live feedback";
+}
             }
 
             // Result buttons
@@ -1221,6 +1253,20 @@
             }
         }
 
+        // FOCUS MODE TOGGLE
+        function toggleFocusMode() {
+            focusModeActive = !focusModeActive;
+        if (focusModeBtn) {
+        if (focusModeActive) {
+            focusModeBtn.classList.add('active');
+            focusModeBtn.title = "Focus Mode ON - Hide feedback colors";
+        } else {
+            focusModeBtn.classList.remove('active');
+            focusModeBtn.title = "Focus Mode OFF - Show live feedback";
+        }
+    }
+    updateLiveFeedback();
+}
         // CASE SENSITIVITY TOGGLE
         function toggleIgnoreCase() {
             ignoreCaseActive = !ignoreCaseActive;
@@ -1823,6 +1869,11 @@
 
         // LIVE FEEDBACK - Better punctuation positioning using word-based mapping
         function updateLiveFeedback() {
+            // Focus mode: show plain text without color coding
+            if (focusModeActive) {
+                liveFeedback.textContent = userText;
+                return;
+            }
             if (!userInput || !liveFeedback) return;
             
             const userText = userInput.value;
@@ -2296,6 +2347,13 @@
             if (ignoreCaseBtn) {
                 ignoreCaseBtn.classList.remove('active');
                 ignoreCaseBtn.title = "Capitalization checking OFF";
+            }
+
+            // Reset focus mode to default (OFF)
+            focusModeActive = false;
+            if (focusModeBtn) {
+                focusModeBtn.classList.remove('active');
+                focusModeBtn.title = "Focus Mode OFF - Show live feedback";
             }
             
             // Reset audio
