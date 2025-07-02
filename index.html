@@ -1480,14 +1480,16 @@
         }
 
         // KEYBOARD SHORTCUTS
-        function handleGlobalKeyDown(e) {
-             if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        console.log('*** UNEXPECTED CMD+ENTER detected! ***');
-        console.log('Event details:', e);
+       function handleGlobalKeyDown(e) {
+    // Block ONLY Cmd+Enter WITHOUT Shift
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !e.shiftKey) {
+        console.log('*** Blocking unwanted CMD+ENTER (no Shift) ***');
         e.preventDefault();
         return;
     }
+    
     console.log('Global keydown detected:', e.key, 'Shift:', e.shiftKey, 'Ctrl/Cmd:', (e.ctrlKey || e.metaKey));
+    // ... rest of your function stays the same
     
 
             // Hint shortcut: Shift + Ctrl/Cmd + ß (German), / (US), , (French)
