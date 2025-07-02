@@ -1012,7 +1012,7 @@
                 
                 <div class="input-area">
                     <div class="live-feedback" id="liveFeedback">Live Feedback</div>
-                    <textarea class="input-field" id="userInput" placeholder="" autofocus></textarea>
+                    <textarea class="input-field" id="userInput" placeholder=""></textarea>
                 </div>
 
                 <div class="options">
@@ -1213,11 +1213,15 @@
                     await loadLesson(lessonId);
                     
                     updateLoadingText('Ready!');
-                    setTimeout(() => {
-                        hideLoadingOverlay();
-                        window.focus();
-                        resolve();
-                    }, 500);
+setTimeout(() => {
+    hideLoadingOverlay();
+    window.focus();
+    // Focus the input after initialization is complete
+    if (userInput) {
+        userInput.focus();
+    }
+    resolve();
+}, 500);
                     
                     clearTimeout(timeoutId);
                 } catch (error) {
