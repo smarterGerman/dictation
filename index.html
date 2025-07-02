@@ -723,10 +723,13 @@
         }
         .loading-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
        .loading-content {
-            text-align: center; background: rgba(255, 255, 255, 0.98);
-            border: 2px solid rgba(168, 85, 247, 0.3); border-radius: 20px; padding: 40px 50px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15); max-width: 400px; width: 90%;
-            transform: translateY(-15vh);
+            text-align: center; background: rgba(255, 255, 255, 0.99);
+            border: 3px solid #a855f7; border-radius: 20px; padding: 50px 60px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3); max-width: 450px; width: 90%;
+            position: fixed;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%);
         }
        .loading-spinner {
             width: 80px; height: 80px; border: 6px solid rgba(168, 85, 247, 0.2);
