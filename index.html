@@ -1166,14 +1166,13 @@
             lessonsUrl: 'https://raw.githubusercontent.com/smarterGerman/dictation/main/lessons/lessons.json'
         };
 
-       // INITIALIZATION
-        window.addEventListener('load', initializeApp);
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => setTimeout(initializeApp, 500));
-        } else {
-            setTimeout(initializeApp, 100);
-        }
-       setTimeout(() => {
+      // INITIALIZATION - Single trigger only
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    // Document already loaded
+    initializeApp();
+}
     // Only trigger emergency if initialization actually failed
     if (loadingOverlay && !loadingOverlay.classList.contains('hidden')) {
         console.warn('Emergency initialization triggered');
