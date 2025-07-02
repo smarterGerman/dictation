@@ -1532,11 +1532,12 @@
         }
 
         function handleKeyDown(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                processCurrentSentenceAndAdvance();
-            }
-        }
+    // Only process Enter if NO modifier keys are pressed
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        processCurrentSentenceAndAdvance();
+    }
+}
 
         // SENTENCE PROCESSING
         function processCurrentSentenceAndAdvance() {
