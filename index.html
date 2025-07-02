@@ -1173,12 +1173,13 @@
         } else {
             setTimeout(initializeApp, 100);
         }
-        setTimeout(() => {
-            if (!document.querySelector('.container').style.visibility) {
-                console.warn('Emergency initialization triggered');
-                initializeApp();
-            }
-        }, 2000);
+       setTimeout(() => {
+    // Only trigger emergency if initialization actually failed
+    if (loadingOverlay && !loadingOverlay.classList.contains('hidden')) {
+        console.warn('Emergency initialization triggered');
+        initializeApp();
+    }
+}, 2000);
 
         async function initializeApp() {
             try {
