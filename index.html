@@ -948,6 +948,20 @@
                 font-size: 14px !important;
             }
         }
+
+        /* Progress indicator on play button */
+.play-btn.mid-sentence::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    background: #22c55e;
+    border: 2px solid white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
+}
     </style>
 </head>
 <body>
@@ -969,7 +983,7 @@
                 <div class="audio-controls">
                     <div class="player-pill">
                         <button class="nav-btn" id="prevBtn" title="Previous sentence">‹</button>
-                        <button class="play-btn" id="playBtn"></button>
+                       <button class="play-btn" id="playBtn" title="Play/Pause (double-click to restart)"></button>
                         <button class="nav-btn" id="nextBtn" title="Next sentence">›</button>
                         <button class="toggle-btn" id="ignoreCaseBtn" title="Capitalization checking OFF">Aa</button>
                         <button class="toggle-btn" id="focusModeBtn" title="Focus Mode OFF - Show live feedback">
@@ -1135,6 +1149,9 @@
         let ignoreCaseActive = true;
         let focusModeActive = false;
         let currentSpeed = 1.0;
+        let lastPlayClickTime = 0;
+        let pausedPosition = null;
+        let isAtSentenceStart = true;
 
          // LOADING STATE
         let loadingOverlay, loadingText, loadingError, errorMessage, retryBtn;
@@ -1722,26 +1739,46 @@
         
         // AUDIO PLAYBACK
         function togglePlayback() {
-            console.log(`[DEBUG] Play/Pause button tapped. IsPaused: ${audioPlayer.paused}. Current Network State: ${audioPlayer.networkState}.`);
-            console.log('togglePlayback called.');
-            
-            if (vttCues.length === 0) {
-                if (isPlaying) {
-                    audioPlayer.pause();
-                } else {
-                    audioPlayer.play().catch(error => {
-                        console.log('Audio playback failed:', error);
-                        alert('Audio could not be played. Please check your internet connection.');
-                    });
-                }
-            } else {
-                if (isPlaying) {
-                    audioPlayer.pause();
-                } else {
-                    playCurrentSentence();
-                }
-            }
+    const currentTime = new Date().getTime();
+    const timeDiff = currentTime - lastPlayClickTime;
+    
+    // Double-click detection (within 300ms)
+    if (timeDiff < 300) {
+        // Double-click: restart sentence from beginning
+        console.log('Double-click detected: Restarting sentence from beginning');
+        restartCurrentSentence();
+        return;
+    }
+    
+    console.log(`[DEBUG] Play/Pause button tapped. IsPaused: ${audioPlayer.paused}. Current Network State: ${audioPlayer.networkState}.`);
+    
+    if (vttCues.length === 0) {
+        // No cues - use normal play/pause
+        if (isPlaying) {
+            audioPlayer.pause();
+        } else {
+            audioPlayer.play().catch(error => {
+                console.log('Audio playback failed:', error);
+                alert('Audio could not be played. Please check your internet connection.');
+            });
         }
+    } else {
+        // With cues - use smart resume/pause
+        if (isPlaying) {
+            // Pause and remember position
+            pausedPosition = audioPlayer.currentTime;
+            audioPlayer.pause();
+            if (playBtn) playBtn.classList.add('mid-sentence');
+            isAtSentenceStart = false;
+            console.log('Paused at position:', pausedPosition);
+        } else {
+            // Resume from paused position or start from beginning
+            playCurrentSentenceFromPosition();
+        }
+    }
+    
+    lastPlayClickTime = currentTime;
+}
 
         function playCurrentSentence() {
             if (currentCueIndex >= 0 && currentCueIndex < vttCues.length) {
@@ -1763,6 +1800,53 @@
                 }
             }
         }
+
+        function restartCurrentSentence() {
+    if (currentCueIndex >= 0 && currentCueIndex < vttCues.length) {
+        const cue = vttCues[currentCueIndex];
+        audioPlayer.currentTime = cue.start;
+        pausedPosition = null;
+        isAtSentenceStart = true;
+        if (playBtn) playBtn.classList.remove('mid-sentence');
+        
+        const playPromise = audioPlayer.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                console.log('Restarted sentence from beginning');
+            }).catch(error => {
+                console.error('Audio playback failed:', error);
+                alert('Audio could not be played. Please check your internet connection.');
+            });
+        }
+    }
+}
+
+function playCurrentSentenceFromPosition() {
+    if (currentCueIndex >= 0 && currentCueIndex < vttCues.length) {
+        const cue = vttCues[currentCueIndex];
+        
+        if (pausedPosition !== null && pausedPosition > cue.start && pausedPosition < cue.end) {
+            // Resume from paused position
+            audioPlayer.currentTime = pausedPosition;
+            console.log('Resuming from paused position:', pausedPosition);
+        } else {
+            // Start from beginning
+            audioPlayer.currentTime = cue.start;
+            pausedPosition = null;
+            isAtSentenceStart = true;
+            if (playBtn) playBtn.classList.remove('mid-sentence');
+            console.log('Starting sentence from beginning');
+        }
+        
+        const playPromise = audioPlayer.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                console.error('Audio playback failed:', error);
+                alert('Audio could not be played. Please check your internet connection.');
+            });
+        }
+    }
+}
 
         // NAVIGATION
         function goToPreviousSentence() {
@@ -1805,9 +1889,13 @@
             hasStartedTyping = false;
             
             if (statsSection) statsSection.style.display = 'none';
+
+            // Reset pause state for new sentence
+pausedPosition = null;
+isAtSentenceStart = true;
+if (playBtn) playBtn.classList.remove('mid-sentence');
             
             // DON'T reset the case sensitivity toggle - let it persist
-            
             setTimeout(sendHeightToParent, 100);
         }
 
@@ -1836,6 +1924,17 @@
                     audioPlayer.pause();
                 }
             }
+        // Clear mid-sentence indicator when sentence completes
+if (vttCues.length > 0 && isPlaying) {
+    const currentTime = audioPlayer.currentTime;
+    const currentCue = vttCues[currentCueIndex];
+    
+    if (currentCue && currentTime >= currentCue.end) {
+        pausedPosition = null;
+        isAtSentenceStart = true;
+        if (playBtn) playBtn.classList.remove('mid-sentence');
+    }
+}
         }
 
         // LESSON LOADING
