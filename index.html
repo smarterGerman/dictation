@@ -1192,44 +1192,67 @@
         }
 
         async function initializeWithTimeout() {
-            return new Promise(async (resolve, reject) => {
-                const timeoutId = setTimeout(() => {
-                    reject(new Error('Loading timeout - please check your internet connection'));
-                }, LOAD_TIMEOUT);
+    return new Promise(async (resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+            console.error('DEBUG: Timeout reached - initialization took too long');
+            reject(new Error('Loading timeout - please check your internet connection'));
+        }, LOAD_TIMEOUT);
 
-                try {
-                    initializeLoadingElements();
-                    updateLoadingText('Initializing interface...');
-                    
-                    initializeDOMElements();
-                    setupEventListeners();
-                    initializeAutoResize();
-                    
-                    updateLoadingText('Loading lesson data...');
-                    const lessonId = getLessonIdFromUrl() || 'A1L01';
-                    await loadAllLessonsWithRetry();
-                    
-                    updateLoadingText('Loading lesson content...');
-                    await loadLesson(lessonId);
-                    
-                    updateLoadingText('Ready!');
-setTimeout(() => {
-    hideLoadingOverlay();
-    window.focus();
-    // Focus the input after initialization is complete
-    if (userInput) {
-        userInput.focus();
-    }
-    resolve();
-}, 500);
-                    
-                    clearTimeout(timeoutId);
-                } catch (error) {
-                    clearTimeout(timeoutId);
-                    reject(error);
+        try {
+            console.log('DEBUG: Starting initialization...');
+            initializeLoadingElements();
+            console.log('DEBUG: Loading elements initialized');
+            
+            updateLoadingText('Initializing interface...');
+            
+            initializeDOMElements();
+            console.log('DEBUG: DOM elements initialized');
+            
+            setupEventListeners();
+            console.log('DEBUG: Event listeners set up');
+            
+            initializeAutoResize();
+            console.log('DEBUG: Auto resize initialized');
+            
+            updateLoadingText('Loading lesson data...');
+            const lessonId = getLessonIdFromUrl() || 'A1L01';
+            console.log('DEBUG: About to load lessons for:', lessonId);
+            
+            await loadAllLessonsWithRetry();
+            console.log('DEBUG: Lessons loaded successfully');
+            
+            updateLoadingText('Loading lesson content...');
+            console.log('DEBUG: About to load lesson content');
+            
+            await loadLesson(lessonId);
+            console.log('DEBUG: Lesson loaded successfully');
+            
+            updateLoadingText('Ready!');
+            console.log('DEBUG: About to hide loading overlay in 500ms');
+            
+            setTimeout(() => {
+                console.log('DEBUG: Hiding loading overlay now');
+                hideLoadingOverlay();
+                window.focus();
+                // Focus the input after initialization is complete
+                if (userInput) {
+                    userInput.focus();
                 }
-            });
+                console.log('DEBUG: Initialization completely finished!');
+                resolve();
+            }, 500);
+            
+            console.log('DEBUG: About to clear timeout');
+            clearTimeout(timeoutId);
+            console.log('DEBUG: Timeout cleared successfully');
+            
+        } catch (error) {
+            console.error('DEBUG: Initialization failed with error:', error);
+            clearTimeout(timeoutId);
+            reject(error);
         }
+    });
+}
 
         function initializeLoadingElements() {
             loadingOverlay = document.getElementById('loadingOverlay');
