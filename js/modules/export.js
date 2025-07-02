@@ -15,12 +15,9 @@ export class Exporter {
         this.exportBtn = document.getElementById('exportCsvBtn');
         if (this.exportBtn) {
             this.exportBtn.addEventListener('click', () => {
-                console.log('Export button clicked');
                 this.exportSessionResults();
             });
-            console.log('Export button listener added');
         } else {
-            console.log('Export button not found');
         }
     }
     
@@ -28,11 +25,8 @@ export class Exporter {
      * Export session results to CSV
      */
     exportSessionResults(sessionResults = [], lessonId = 'Unknown', totalSessionTime = 0) {
-        console.log('exportCSV function called');
-        console.log('sessionResults length:', sessionResults.length);
         
         if (sessionResults.length === 0) {
-            console.log('No session results to export');
             alert('No results to export. Please complete some sentences first.');
             return false;
         }
@@ -41,10 +35,8 @@ export class Exporter {
             const csvContent = this.generateCSVContent(sessionResults, lessonId, totalSessionTime);
             const filename = `${lessonId}-results.csv`;
             
-            console.log('CSV Content:', csvContent);
             this.downloadCSV(csvContent, filename);
             
-            console.log('CSV export completed successfully');
             return true;
         } catch (error) {
             console.error('Error during CSV export:', error);
@@ -150,7 +142,6 @@ export class Exporter {
             link.download = filename;
             link.style.display = 'none';
             
-            console.log('Creating download link:', filename);
             
             document.body.appendChild(link);
             link.click();

@@ -323,6 +323,5 @@ export class KeyboardShortcuts {
         
         // Note: In a real implementation, you'd want to store references
         // to the bound functions to properly remove event listeners
-        console.log('KeyboardShortcuts destroyed');
     }
 }

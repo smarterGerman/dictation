@@ -38,7 +38,6 @@ export class DictationApp {
         }
         
         try {
-            console.log('Initializing German Dictation Tool...');
             
             // Update loading text
             this.updateLoadingText('Initializing interface...');
@@ -82,7 +81,6 @@ export class DictationApp {
             }, 500);
             
             this.initialized = true;
-            console.log('German Dictation Tool initialized successfully');
             
         } catch (error) {
             console.error('Failed to initialize DictationApp:', error);
@@ -195,7 +193,6 @@ export class DictationApp {
      */
     async loadLesson(lessonId) {
         try {
-            console.log(`Loading lesson: ${lessonId}`);
             
             // Disable play button during loading
             if (this.audioPlayer.playBtn) {
@@ -229,7 +226,6 @@ export class DictationApp {
                 this.state.setReferenceText(cues[0].text);
             }
             
-            console.log(`Lesson ${lessonId} loaded successfully with ${cues.length} sentences`);
             
         } catch (error) {
             console.error(`Failed to load lesson ${lessonId}:`, error);
@@ -314,7 +310,6 @@ export class DictationApp {
      * Show final results
      */
     showFinalResult() {
-        console.log('showFinalResult called');
         
         const userInput = this.uiControls.getUserInput();
         
@@ -390,7 +385,6 @@ export class DictationApp {
      * Restart dictation
      */
     restartDictation() {
-        console.log('Restart button clicked');
         
         // Reset state
         this.state.setCurrentCueIndex(0);
@@ -415,7 +409,6 @@ export class DictationApp {
         // Focus input
         this.uiControls.focusInput();
         
-        console.log('Restart complete');
     }
     
     /**
@@ -469,7 +462,6 @@ export class DictationApp {
         this.autoResize.destroy();
         this.keyboard.destroy();
         this.initialized = false;
-        console.log('DictationApp destroyed');
     }
     
     /**

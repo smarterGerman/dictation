@@ -84,7 +84,6 @@ export class AudioPlayer {
         });
         
         DOMHelpers.addEventListener(this.audio, 'loadedmetadata', () => {
-            console.log(`[DEBUG] Metadata loaded. Duration: ${this.audio.duration.toFixed(2)}s. Network State: ${this.audio.networkState}.`);
             this.updatePlayButton();
             this.audio.playbackRate = this.currentSpeed;
             this.updateProgress();
@@ -107,7 +106,6 @@ export class AudioPlayer {
             throw new Error('Audio element not available');
         }
         
-        console.log(`[DEBUG] Attempting to load audio: ${audioUrl.substring(audioUrl.lastIndexOf('/') + 1)}. Current Network State: ${this.audio.networkState}.`);
         this.audio.src = audioUrl;
     }
     
@@ -130,12 +128,10 @@ export class AudioPlayer {
         // Double-click detection (within 300ms)
         if (timeDiff < 300) {
             // Double-click: restart sentence from beginning
-            console.log('Double-click detected: Restarting sentence from beginning');
             this.restartCurrentSentence();
             return;
         }
         
-        console.log(`[DEBUG] Play/Pause button tapped. IsPaused: ${this.audio.paused}. Current Network State: ${this.audio.networkState}.`);
         
         if (!this.audio) return;
         
@@ -145,7 +141,6 @@ export class AudioPlayer {
                 this.audio.pause();
             } else {
                 this.audio.play().catch(error => {
-                    console.log('Audio playback failed:', error);
                     alert('Audio could not be played. Please check your internet connection.');
                 });
             }
@@ -157,7 +152,6 @@ export class AudioPlayer {
                 this.audio.pause();
                 if (this.playBtn) this.playBtn.classList.add('mid-sentence');
                 this.isAtSentenceStart = false;
-                console.log('Paused at position:', this.pausedPosition);
             } else {
                 // Currently paused - resume from paused position or start from beginning
                 this.playCurrentSentenceFromPosition();
@@ -175,7 +169,6 @@ export class AudioPlayer {
         
         try {
             await this.audio.play();
-            console.log('[DEBUG] Playback promise resolved (audio started).');
             return true;
         } catch (error) {
             console.error('Audio Playback Promise Rejected:', {
@@ -207,7 +200,6 @@ export class AudioPlayer {
             const playPromise = this.audio.play();
             if (playPromise !== undefined) {
                 playPromise.then(() => {
-                    console.log('[DEBUG] Playback promise resolved (audio started).');
                 }).catch(error => {
                     console.error('Audio Playback Promise Rejected:', {
                         name: error.name,
@@ -476,7 +468,6 @@ export class AudioPlayer {
             const playPromise = this.audio.play();
             if (playPromise !== undefined) {
                 playPromise.then(() => {
-                    console.log('Restarted sentence from beginning');
                 }).catch(error => {
                     console.error('Audio playback failed:', error);
                     alert('Audio could not be played. Please check your internet connection.');
@@ -495,14 +486,12 @@ export class AudioPlayer {
             if (this.pausedPosition !== null && this.pausedPosition > cue.start && this.pausedPosition < cue.end) {
                 // Resume from paused position
                 this.audio.currentTime = this.pausedPosition;
-                console.log('Resuming from paused position:', this.pausedPosition);
             } else {
                 // Start from beginning
                 this.audio.currentTime = cue.start;
                 this.pausedPosition = null;
                 this.isAtSentenceStart = true;
                 if (this.playBtn) this.playBtn.classList.remove('mid-sentence');
-                console.log('Starting sentence from beginning');
             }
             
             const playPromise = this.audio.play();

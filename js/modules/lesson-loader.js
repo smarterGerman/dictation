@@ -23,7 +23,6 @@ export class LessonLoader {
         this.isLoading = true;
         
         try {
-            console.log('Loading lessons from:', CONFIG.lessonsUrl);
             const response = await fetch(CONFIG.lessonsUrl);
             
             if (!response.ok) {
@@ -31,7 +30,6 @@ export class LessonLoader {
             }
             
             this.allLessons = await response.json();
-            console.log(`Loaded ${Object.keys(this.allLessons).length} lessons`);
             
             return this.allLessons;
         } catch (error) {
@@ -71,7 +69,6 @@ export class LessonLoader {
      */
     async loadVTTFromUrl(vttUrl) {
         try {
-            console.log('Loading VTT from:', vttUrl);
             const response = await fetch(vttUrl);
             
             if (!response.ok) {
@@ -81,7 +78,6 @@ export class LessonLoader {
             const vttText = await response.text();
             const cues = this.parseVTT(vttText);
             
-            console.log(`Parsed ${cues.length} VTT cues`);
             return cues;
         } catch (error) {
             console.error('Failed to load VTT file:', error);

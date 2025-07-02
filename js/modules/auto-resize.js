@@ -28,9 +28,7 @@ export class AutoResize {
         }
         
         if (this.setupResizeObserver()) {
-            console.log('Using ResizeObserver (modern)');
         } else {
-            console.log('Using MutationObserver fallback (older browsers)');
             this.setupFallbackObserver();
         }
         
