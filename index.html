@@ -1913,29 +1913,22 @@ if (playBtn) playBtn.classList.remove('mid-sentence');
         }
 
         // TIME UPDATE
-        function handleTimeUpdate() {
-            updateProgress();
-            
-            if (vttCues.length > 0 && isPlaying) {
-                const currentTime = audioPlayer.currentTime;
-                const currentCue = vttCues[currentCueIndex];
-                
-                if (currentCue && currentTime >= currentCue.end) {
-                    audioPlayer.pause();
-                }
-            }
-        // Clear mid-sentence indicator when sentence completes
-if (vttCues.length > 0 && isPlaying) {
-    const currentTime = audioPlayer.currentTime;
-    const currentCue = vttCues[currentCueIndex];
+       function handleTimeUpdate() {
+    updateProgress();
     
-    if (currentCue && currentTime >= currentCue.end) {
-        pausedPosition = null;
-        isAtSentenceStart = true;
-        if (playBtn) playBtn.classList.remove('mid-sentence');
+    if (vttCues.length > 0 && isPlaying) {
+        const currentTime = audioPlayer.currentTime;
+        const currentCue = vttCues[currentCueIndex];
+        
+        if (currentCue && currentTime >= currentCue.end) {
+            audioPlayer.pause();
+            // Clear mid-sentence indicator when sentence completes
+            pausedPosition = null;
+            isAtSentenceStart = true;
+            if (playBtn) playBtn.classList.remove('mid-sentence');
+        }
     }
 }
-        }
 
         // LESSON LOADING
         async function loadLesson(lessonId) {
