@@ -9,36 +9,123 @@ export class TextComparison {
      * Compare user input with reference text
      */
     static compareTexts(reference, userText, options = {}) {
-        const {
-            ignoreCase = true,
-            ignorePunctuation = true
-        } = options;
+        const { ignoreCase = true } = options;
         
         // Convert German characters in user text
         const convertedUserText = GermanChars.convert(userText);
         
-        // Normalize both texts
-        const refNormalized = GermanChars.normalizeForComparison(reference, {
-            ignorePunctuation,
-            ignoreCase,
-            convertGermanChars: false // Reference is already correct
-        });
+        const ignorePunctuation = true;
         
-        const userNormalized = GermanChars.normalizeForComparison(convertedUserText, {
-            ignorePunctuation,
-            ignoreCase,
-            convertGermanChars: false // Already converted above
-        });
+        let refNormalized = reference;
+        let userNormalized = convertedUserText;
         
-        // Split into words
-        const refWords = GermanChars.splitIntoWords(refNormalized);
-        const userWords = GermanChars.splitIntoWords(userNormalized);
+        if (ignorePunctuation) {
+            // Remove ALL punctuation marks including quotation marks
+            refNormalized = refNormalized.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '');
+            userNormalized = userNormalized.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '');
+        }
         
-        // Perform sequence alignment
+        if (ignoreCase) {
+            refNormalized = refNormalized.toLowerCase();
+            userNormalized = userNormalized.toLowerCase();
+        }
+        
+        userNormalized = userNormalized.replace(/\s+/g, ' ').trim();
+        
+        const refWords = refNormalized.split(/\s+/).filter(w => w.length > 0);
+        const userWords = userNormalized.split(/\s+/).filter(w => w.length > 0);
+        
         const alignment = this.alignSequencesWithGaps(refWords, userWords);
         
-        // Generate character-level comparison result
-        return this.generateComparisonResult(alignment);
+        const result = [];
+        let correct = 0;
+        let wrongPosition = 0;
+        let wrong = 0;
+        let extra = 0;
+        let missing = 0;
+        
+        for (let i = 0; i < alignment.length; i++) {
+            const item = alignment[i];
+            
+            if (i > 0) {
+                result.push({ char: ' ', status: 'word-boundary' });
+            }
+            
+            if (item.type === 'match') {
+                for (let char of item.userWord) {
+                    result.push({ char, status: 'correct' });
+                    correct++;
+                }
+            } else if (item.type === 'substitute') {
+                const ref = item.refWord;
+                const user = item.userWord;
+
+                let missingPrefix = 0;
+                let missingSuffix = 0;
+
+                // Check for missing prefix (ref ends with user input)
+                for (let idx = 1; idx <= ref.length; idx++) {
+                    if (ref.slice(-idx) === user) {
+                        missingPrefix = ref.length - idx;
+                        break;
+                    }
+                }
+                
+                // Check for missing suffix (ref starts with user input)
+                if (missingPrefix === 0) {
+                    for (let idx = 1; idx <= ref.length; idx++) {
+                        if (ref.slice(0, idx) === user) {
+                            missingSuffix = ref.length - idx;
+                            break;
+                        }
+                    }
+                }
+
+                // Add missing prefix
+                if (missingPrefix > 0) {
+                    for (let k = 0; k < missingPrefix; k++) {
+                        if (k > 0) result.push({ char: ' ', status: 'char-space' });
+                        result.push({ char: '_', status: 'missing' });
+                        missing++;
+                    }
+                }
+
+                // Add user characters
+                for (let c = 0; c < user.length; c++) {
+                    result.push({ char: user[c], status: 'wrong' });
+                    wrong++;
+                }
+
+                // Add missing suffix
+                if (missingSuffix > 0) {
+                    for (let k = 0; k < missingSuffix; k++) {
+                        result.push({ char: ' ', status: 'char-space' });
+                        result.push({ char: '_', status: 'missing' });
+                        missing++;
+                    }
+                }
+            } else if (item.type === 'insert') {
+                for (let char of item.userWord) {
+                    result.push({ char, status: 'extra' });
+                    extra++;
+                }
+            } else if (item.type === 'delete') {
+                const wordLength = item.refWord.length;
+                
+                for (let k = 0; k < wordLength; k++) {
+                    if (k > 0) {
+                        result.push({ char: ' ', status: 'char-space' });
+                    }
+                    result.push({ char: '_', status: 'missing' });
+                    missing++;
+                }
+            }
+        }
+        
+        return {
+            chars: result,
+            stats: { correct, wrongPosition, wrong, extra, missing }
+        };
     }
     
     /**

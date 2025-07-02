@@ -148,26 +148,50 @@ export class UIControls {
             return;
         }
         
-        // In focus mode, just show the text without colors
-        if (this.focusModeActive) {
-            DOMHelpers.setContent(this.liveFeedback, userText.replace(/\n/g, '<br>'), true);
-            return;
-        }
-        
         const comparison = TextComparison.compareTexts(
             this.referenceText, 
             userText, 
             { ignoreCase: this.ignoreCaseActive }
         );
         
-        let feedbackHTML = '';
+        // Build word-to-punctuation mapping from original text
+        const originalText = this.referenceText;
+        const words = originalText.split(/\s+/);
+        const wordPunctuation = [];
         
-        comparison.chars.forEach(item => {
+        words.forEach(word => {
+            // Extract punctuation from the end of each word
+            const punctMatch = word.match(/([.,!?;:""''()„""''‚'«»]+)$/);
+            const cleanWord = word.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]+/g, '');
+            
+            wordPunctuation.push({
+                word: cleanWord,
+                punctuation: punctMatch ? punctMatch[1] : ''
+            });
+        });
+        
+        // Build the feedback HTML with punctuation insertion
+        let feedbackHTML = '';
+        let currentWordIndex = 0;
+        let isInWord = false;
+        
+        comparison.chars.forEach((item, index) => {
             let char = item.char;
             
+            // Handle spacing
             if (char === ' ') {
                 if (item.status === 'word-boundary') {
+                    // End of word - add punctuation if any
+                    if (currentWordIndex < wordPunctuation.length && wordPunctuation[currentWordIndex].punctuation) {
+                        if (this.focusModeActive) {
+                            feedbackHTML += wordPunctuation[currentWordIndex].punctuation;
+                        } else {
+                            feedbackHTML += `<span class="char-punctuation">${wordPunctuation[currentWordIndex].punctuation}</span>`;
+                        }
+                    }
+                    currentWordIndex++;
                     char = '&nbsp;&nbsp;&nbsp;';
+                    isInWord = false;
                 } else if (item.status === 'char-space') {
                     char = '&nbsp;';
                 } else {
@@ -175,10 +199,27 @@ export class UIControls {
                 }
             } else if (char === '\n') {
                 char = '<br>';
+            } else {
+                // Regular character - we're in a word
+                isInWord = true;
             }
             
-            feedbackHTML += `<span class="char-${item.status}">${char}</span>`;
+            // In focus mode, don't apply color classes
+            if (this.focusModeActive) {
+                feedbackHTML += char;
+            } else {
+                feedbackHTML += `<span class="char-${item.status}">${char}</span>`;
+            }
         });
+        
+        // Add punctuation for the last word if we ended in a word
+        if (isInWord && currentWordIndex < wordPunctuation.length && wordPunctuation[currentWordIndex].punctuation) {
+            if (this.focusModeActive) {
+                feedbackHTML += wordPunctuation[currentWordIndex].punctuation;
+            } else {
+                feedbackHTML += `<span class="char-punctuation">${wordPunctuation[currentWordIndex].punctuation}</span>`;
+            }
+        }
         
         DOMHelpers.setContent(this.liveFeedback, feedbackHTML, true);
     }

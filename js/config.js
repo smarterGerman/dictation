@@ -68,6 +68,16 @@ export const CONFIG = {
             { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[bcdfghjklmnpqrstvwxyz])Oe/g, replacement: '$1ö' },
             { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[bcdfghjklmnpqrstvwxyz])Ue/g, replacement: '$1ü' },
             
+            // Mixed case with lowercase consonant + mixed vowels (tuEr -> tür, hoEren -> hören)
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[bcdfghjklmnpqrstvwxyz])aE/g, replacement: '$1ä' },
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[bcdfghjklmnpqrstvwxyz])oE/g, replacement: '$1ö' },
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[bcdfghjklmnpqrstvwxyz])uE/g, replacement: '$1ü' },
+            
+            // Mixed case with uppercase consonant + mixed vowels (TuEr -> Tür, HoEren -> Hören)
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[BCDFGHJKLMNPQRSTVWXYZ])aE/g, replacement: '$1ä' },
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[BCDFGHJKLMNPQRSTVWXYZ])oE/g, replacement: '$1ö' },
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[BCDFGHJKLMNPQRSTVWXYZ])uE/g, replacement: '$1ü' },
+            
             // ß conversion patterns (unchanged)
             { pattern: /\B([aeiouäöü])B/g, replacement: '$1ß' },
             { pattern: /([aeiouäöü])B([aeiouäöü])/g, replacement: '$1ß$2' },
