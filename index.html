@@ -1509,63 +1509,69 @@ setTimeout(() => {  // ← ADD THIS LINE
         }
 
         // KEYBOARD SHORTCUTS
-       function handleGlobalKeyDown(e) {
+     function handleGlobalKeyDown(e) {
+    console.log('Global keydown detected:', e.key, 'Shift:', e.shiftKey, 'Ctrl/Cmd:', (e.ctrlKey || e.metaKey));
+    
+    // PRIORITY: Handle Shift+Cmd+Enter FIRST before any other processing
+    if (e.shiftKey && (e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        console.log('Shortcut for togglePlayback activated.');
+        togglePlayback();
+        return;
+    }
+
     // Block ONLY Cmd+Enter WITHOUT Shift
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !e.shiftKey) {
         console.log('*** Blocking unwanted CMD+ENTER (no Shift) ***');
         e.preventDefault();
         return;
     }
-    
-    console.log('Global keydown detected:', e.key, 'Shift:', e.shiftKey, 'Ctrl/Cmd:', (e.ctrlKey || e.metaKey));
-    // ... rest of your function stays the same
-    
 
-            // Hint shortcut: Shift + Ctrl/Cmd + ß (German), / (US), , (French)
-            if (e.shiftKey && (e.ctrlKey || e.metaKey) && (e.key === 'ß' || e.key === '/' || e.key === ',')) {
+    // Hint shortcut: Shift + Ctrl/Cmd + ß (German), / (US), , (French)
+    if (e.shiftKey && (e.ctrlKey || e.metaKey) && (e.key === 'ß' || e.key === '/' || e.key === ',')) {
+        e.preventDefault();
+        e.stopPropagation();
+        showHint();
+        if (hintBtn) hintBtn.focus();
+        return;
+    }
+
+    // Sentence navigation: Shift + Ctrl/Cmd + Arrow keys
+    if (e.shiftKey && (e.ctrlKey || e.metaKey)) {
+        switch (e.key) {
+            case 'ArrowLeft':
                 e.preventDefault();
-                showHint();
-                if (hintBtn) hintBtn.focus();
-                return;
-            }
-
-            // Play/Pause: Shift + Ctrl/Cmd + Enter
-            if (e.shiftKey && (e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.stopPropagation();
+                goToPreviousSentence();
+                break;
+            case 'ArrowRight':
                 e.preventDefault();
-                console.log('Shortcut for togglePlayback activated.');
-                togglePlayback();
-                return;
-            }
-
-            // Sentence navigation: Shift + Ctrl/Cmd + Arrow keys
-            if (e.shiftKey && (e.ctrlKey || e.metaKey)) {
-                switch (e.key) {
-                    case 'ArrowLeft':
-                        e.preventDefault();
-                        goToPreviousSentence();
-                        break;
-                    case 'ArrowRight':
-                        e.preventDefault();
-                        goToNextSentence();
-                        break;
-                    case 'ArrowUp':
-                        e.preventDefault();
-                        playCurrentSentence();
-                        break;
-                    case 'ArrowDown':
-                        e.preventDefault();
-                        toggleSpeed();
-                        break;
-                }
-            }
+                e.stopPropagation();
+                goToNextSentence();
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                e.stopPropagation();
+                playCurrentSentence();
+                break;
+            case 'ArrowDown':
+                e.preventDefault();
+                e.stopPropagation();
+                toggleSpeed();
+                break;
         }
+    }
+}
 
-        function handleKeyDown(e) {
+       function handleKeyDown(e) {
     // Only process Enter if NO modifier keys are pressed
     if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         processCurrentSentenceAndAdvance();
     }
+    // Let all other key combinations (including Shift+Cmd+Enter) bubble up to global handler
 }
 
         // SENTENCE PROCESSING
