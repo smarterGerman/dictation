@@ -38,24 +38,24 @@ export const CONFIG = {
             // Negative lookbehind ensures no conversion after vowels (including umlauts)
             
             // Lowercase patterns
-            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[bcdfghjklmnpqrstvwxyz])ae/g, replacement: '$1ä' },
-            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[bcdfghjklmnpqrstvwxyz])oe/g, replacement: '$1ö' },
-            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[bcdfghjklmnpqrstvwxyz])ue/g, replacement: '$1ü' },
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])ue/g, replacement: 'ü' },
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])ae/g, replacement: 'ä' },
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])oe/g, replacement: 'ö' },
             
             // Uppercase patterns - first letter capitalized (Tuer -> Tür)
-            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[BCDFGHJKLMNPQRSTVWXYZ])AE/g, replacement: '$1Ä' },
-            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[BCDFGHJKLMNPQRSTVWXYZ])OE/g, replacement: '$1Ö' },
-            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[BCDFGHJKLMNPQRSTVWXYZ])UE/g, replacement: '$1Ü' },
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])Ue/g, replacement: 'Ü' },
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])Ae/g, replacement: 'Ä' },
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])Oe/g, replacement: 'Ö' },
             
             // Mixed case patterns (Tuer -> Tür, Fuehren -> Führen)
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[BCDFGHJKLMNPQRSTVWXYZ])ue/g, replacement: '$1ü' },
             { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[BCDFGHJKLMNPQRSTVWXYZ])ae/g, replacement: '$1ä' },
             { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[BCDFGHJKLMNPQRSTVWXYZ])oe/g, replacement: '$1ö' },
-            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[BCDFGHJKLMNPQRSTVWXYZ])ue/g, replacement: '$1ü' },
             
             // Mixed case patterns with lowercase consonant (bAe -> bÄ, etc.)
+            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[bcdfghjklmnpqrstvwxyz])UE/g, replacement: '$1Ü' },
             { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[bcdfghjklmnpqrstvwxyz])AE/g, replacement: '$1Ä' },
             { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[bcdfghjklmnpqrstvwxyz])OE/g, replacement: '$1Ö' },
-            { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])(\b|[bcdfghjklmnpqrstvwxyz])UE/g, replacement: '$1Ü' },
             
             // Handle mixed capitalization typos - preserve original case of first letter
             // When first letter is uppercase (Ueberfahr -> Überfahrt)
