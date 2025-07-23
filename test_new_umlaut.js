@@ -28,7 +28,7 @@ testCases.forEach(test => {
 
 console.log('\nVerifying existing patterns still work:');
 const existingCases = [
-    'tuer', 'Tuer', 'TUER', 'fUehren', 'Ueberfahr'
+    'tuer', 'Tuer', 'TUER', 'fUehren', 'Ueberfahr', 'zurueck'
 ];
 
 existingCases.forEach(test => {
