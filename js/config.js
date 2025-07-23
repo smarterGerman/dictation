@@ -82,7 +82,14 @@ export const CONFIG = {
             { pattern: /\B([aeiouäöü])B/g, replacement: '$1ß' },
             { pattern: /([aeiouäöü])B([aeiouäöü])/g, replacement: '$1ß$2' },
             { pattern: /([aeiouäöü])B$/g, replacement: '$1ß' },
-            { pattern: /([aeiouäöü])B(\s)/g, replacement: '$1ß$2' }
+            { pattern: /([aeiouäöü])B(\s)/g, replacement: '$1ß$2' },
+            
+            // Additional patterns for handling slashed vowels and sharp s
+            { pattern: /a\//g, replacement: 'ä' },
+            { pattern: /o\//g, replacement: 'ö' },
+            { pattern: /u\//g, replacement: 'ü' },
+            { pattern: /s\//g, replacement: 'ß' },
+            { pattern: /e\//g, replacement: 'é' }
         ]
     },
     
