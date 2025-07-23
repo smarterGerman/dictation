@@ -121,7 +121,7 @@ export class UIControls {
         // Convert German characters
         const cursorPos = e.target.selectionStart;
         const convertedText = GermanChars.convert(e.target.value);
-        
+        console.debug(`[GERMAN CHAR DEBUG] Input: "${e.target.value}" → Converted: "${convertedText}"`);
         if (convertedText !== e.target.value) {
             e.target.value = convertedText;
             e.target.setSelectionRange(cursorPos, cursorPos);

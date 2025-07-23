@@ -35,3 +35,22 @@ existingCases.forEach(test => {
     const result = testConversion(test);
     console.log(`${test} -> ${result}`);
 });
+
+function testConversionDebug(text) {
+    let result = text;
+    CONFIG.germanChars.replacements.forEach(({ pattern, replacement }, idx) => {
+        const before = result;
+        result = result.replace(pattern, replacement);
+        if (before !== result) {
+            console.log(
+                `Pattern #${idx}: ${pattern} | Replacement: ${replacement}\n  Before: ${before}\n  After:  ${result}\n`
+            );
+        }
+    });
+    return result;
+}
+
+console.log('\nDebugging zurueck:');
+const debugWord = 'zurueck';
+const debugResult = testConversionDebug(debugWord);
+console.log(`Final result: ${debugWord} -> ${debugResult}`);
