@@ -121,6 +121,25 @@ export class UIControls {
         // Convert German characters
         const cursorPos = e.target.selectionStart;
         const convertedText = GermanChars.convert(e.target.value);
+       
+        // BEGIN PRECISE DEBUGGING
+        let debugInput = e.target.value;
+console.group(`[GERMAN CHAR DEBUG] Full conversion for: "${debugInput}"`);
+CONFIG.germanChars.replacements.forEach(({ pattern, replacement }, idx) => {
+    const before = debugInput;
+    const after = before.replace(pattern, replacement);
+    const matched = before !== after;
+    console.debug(
+        `#${idx + 1}: Pattern: ${pattern}, Replacement: "${replacement}"\n` +
+        `    Before: "${before}"\n` +
+        `    After:  "${after}"\n` +
+        `    Match: ${matched}`
+    );
+    debugInput = after;
+});
+console.groupEnd();
+// END PRECISE DEBUGGING
+
         console.debug(`[GERMAN CHAR DEBUG] Input: "${e.target.value}" → Converted: "${convertedText}"`);
         if (convertedText !== e.target.value) {
             e.target.value = convertedText;
