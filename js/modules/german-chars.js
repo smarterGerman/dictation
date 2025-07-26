@@ -6,18 +6,14 @@ import { CONFIG } from '../config.js';
 const EXCEPTIONS = ['tue'];
 
 export function convert(input) {
-    console.debug('[GERMAN CHAR EXCEPTION DEBUG] input:', input);
+    console.debug('[EXCEPTION CHECK]', input, EXCEPTIONS.includes(input));
     // If the input matches an exception, return it unchanged
     if (EXCEPTIONS.includes(input)) {
-        console.debug('[GERMAN CHAR EXCEPTION DEBUG] Matched exception:', input);
+        console.debug('[EXCEPTION MATCHED]', input);
         return input;
     }
-
-    let result = input;
-    CONFIG.germanChars.replacements.forEach(({ pattern, replacement }) => {
-        result = result.replace(pattern, replacement);
-    });
-    return result;
+    // Example replacement:
+    return input.replace(/ue/g, 'ü');
 }
 
 export class GermanChars {
