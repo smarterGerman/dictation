@@ -34,9 +34,6 @@ export const CONFIG = {
         punctuation: /[.,!?;:()]/,
         vowels: /[aeiouäöü]/,
         replacements: [
-            { pattern: /\btue\b/g, replacement: 'tue' },
-            // Handle exceptions first
-            { pattern: /\btue\b/g, replacement: 'tue' }, // Exception for 'tue'
             // Convert ae/oe/ue to umlauts with strict vowel/consonant rules
             // Negative lookbehind ensures no conversion after vowels (including umlauts)
             
@@ -93,6 +90,9 @@ export const CONFIG = {
             { pattern: /u\//g, replacement: 'ü' },
             { pattern: /s\//g, replacement: 'ß' },
             { pattern: /e\//g, replacement: 'é' }
+
+            // Fix the exception
+            { pattern: /\btü\b/g, replacement: 'tue' }
         ]
     },
     
