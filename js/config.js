@@ -92,9 +92,9 @@ export const CONFIG = {
             { pattern: /e\//g, replacement: 'é' },
 
             // Fix the exception
-            { pattern: /(?<!\w)tü(?!\w)/g, replacement: 'tue' }
+            { pattern: /(?<!\w)tü(?!\w)/g, replacement: 'tue' },
             { pattern: /(?<!\w)Getü(?!\w)/g, replacement: 'Getue' },
-            { pattern: /(?<!\w)getü(?!\w)/g, replacement: 'getue' }
+            { pattern: /(?<!\w)getü(?!\w)/g, replacement: 'getue' },
         ]
     },
     
