@@ -3,6 +3,19 @@
  */
 import { CONFIG } from '../config.js';
 
+const EXCEPTIONS = ['tue'];
+
+export function convert(input) {
+    // If the input matches an exception, return it unchanged
+    if (EXCEPTIONS.includes(input)) return input;
+
+    let result = input;
+    CONFIG.germanChars.replacements.forEach(({ pattern, replacement }) => {
+        result = result.replace(pattern, replacement);
+    });
+    return result;
+}
+
 export class GermanChars {
     /**
      * Convert German character combinations to proper umlauts and ß
