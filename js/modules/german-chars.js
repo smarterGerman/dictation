@@ -6,8 +6,12 @@ import { CONFIG } from '../config.js';
 const EXCEPTIONS = ['tue'];
 
 export function convert(input) {
+    console.debug('[GERMAN CHAR EXCEPTION DEBUG] input:', input);
     // If the input matches an exception, return it unchanged
-    if (EXCEPTIONS.includes(input)) return input;
+    if (EXCEPTIONS.includes(input)) {
+        console.debug('[GERMAN CHAR EXCEPTION DEBUG] Matched exception:', input);
+        return input;
+    }
 
     let result = input;
     CONFIG.germanChars.replacements.forEach(({ pattern, replacement }) => {
