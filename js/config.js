@@ -97,6 +97,8 @@ export const CONFIG = {
             { pattern: /(?<!\w)getü(?!\w)/g, replacement: 'getue' },
             { pattern: /(?<!\w)beqüm(?!\w)/g, replacement: 'bequem' },
             { pattern: /(?<!\w)Beqüm(?!\w)/g, replacement: 'Bequem' },
+            { pattern: /(?<!\w)beqü(?!\w)/g, replacement: 'beque' },
+            { pattern: /(?<!\w)Beqü(?!\w)/g, replacement: 'Beque' },
         ]
     },
     
