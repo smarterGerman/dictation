@@ -95,6 +95,9 @@ export const CONFIG = {
             { pattern: /(?<!\w)tü(?!\w)/g, replacement: 'tue' },
             { pattern: /(?<!\w)Getü(?!\w)/g, replacement: 'Getue' },
             { pattern: /(?<!\w)getü(?!\w)/g, replacement: 'getue' },
+            { pattern: /(?<!\w)Getü(?!\w)/g, replacement: 'bequem' },
+            { pattern: /(?<!\w)Getü(?!\w)/g, replacement: 'Bequem' },
+
         ]
     },
     
