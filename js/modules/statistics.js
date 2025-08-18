@@ -226,53 +226,83 @@ export class Statistics {
      * Generate HTML for a sentence result with word-level feedback
      */
     generateResultHTML(result) {
-    const { comparison } = result;
+    const { comparison, reference } = result;
     
     if (!comparison || !comparison.chars) {
-        console.error('No comparison data found for result:', result);
         return '<span class="error">No comparison data available</span>';
     }
+    
+    // Get reference words for tooltips
+    const refWords = reference
+        .replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(/\s+/);
     
     let html = '';
     let currentWord = '';
     let wordHasError = false;
+    let currentWordIndex = 0;
+    let isMissingWord = false;
     
-    comparison.chars.forEach((item, index) => {
-        if (item.status === 'word-boundary' || item.status === 'char-space') {
-            // End current word if any
+    comparison.chars.forEach(item => {
+        if (item.status === 'word-boundary') {
+            // Output current word with appropriate styling
             if (currentWord) {
-                const className = wordHasError ? 'result-word-wrong' : 'result-word-correct';
-                html += `<span class="${className}">${currentWord}</span>`;
+                if (isMissingWord) {
+                    // Missing word - add data-missing attribute
+                    const refWord = refWords[currentWordIndex] || '?';
+                    html += `<span class="result-word-missing" data-missing="${refWord}">${currentWord}</span>`;
+                } else if (wordHasError) {
+                    // Wrong word - add data-correct attribute
+                    const refWord = refWords[currentWordIndex] || '?';
+                    html += `<span class="result-word-wrong" data-correct="${refWord}">${currentWord}</span>`;
+                } else {
+                    // Correct word
+                    html += `<span class="result-word-correct">${currentWord}</span>`;
+                }
+                
+                // Move to next word index (unless it was a missing word)
+                if (!isMissingWord) {
+                    currentWordIndex++;
+                }
+                
                 currentWord = '';
                 wordHasError = false;
+                isMissingWord = false;
             }
             html += ' ';
-        } else if (item.status === 'punctuation') {
-            // End current word if any
-            if (currentWord) {
-                const className = wordHasError ? 'result-word-wrong' : 'result-word-correct';
-                html += `<span class="${className}">${currentWord}</span>`;
-                currentWord = '';
-                wordHasError = false;
-            }
-            html += `<span class="char-punctuation">${item.char}</span>`;
-        } else {
-            // Build up current word
+        } else if (item.status === 'char-space') {
+            // Internal space within missing characters
+            currentWord += ' ';
+        } else if (item.status === 'missing') {
             currentWord += item.char;
-            if (item.status === 'wrong' || item.status === 'missing' || item.status === 'extra') {
+            isMissingWord = true;
+        } else {
+            // Add character to current word
+            currentWord += item.char;
+            // Track if this word has any errors
+            if (item.status === 'wrong' || item.status === 'extra') {
                 wordHasError = true;
             }
         }
     });
     
-    // Output final word if any
-    if (currentWord) {
-        const className = wordHasError ? 'result-word-wrong' : 'result-word-correct';
-        html += `<span class="${className}">${currentWord}</span>`;
-    }
+        // Output last word
+        if (currentWord) {
+            if (isMissingWord) {
+                const refWord = refWords[currentWordIndex] || '?';
+                html += `<span class="result-word-missing" data-missing="${refWord}">${currentWord}</span>`;
+            } else if (wordHasError) {
+                const refWord = refWords[currentWordIndex] || '?';
+                html += `<span class="result-word-wrong" data-correct="${refWord}">${currentWord}</span>`;
+            } else {
+                html += `<span class="result-word-correct">${currentWord}</span>`;
+            }
+        }
     
-    return html;
-}
+        return html;
+    }
     
     /**
      * Add tooltip event listeners to wrong/missing words

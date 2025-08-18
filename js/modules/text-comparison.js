@@ -262,58 +262,58 @@ export class TextComparison {
         let extra = 0;
         let missing = 0;
         
-        for (let i = 0; i < alignment.length; i++) {
-            const item = alignment[i];
-            
-            // Add word boundary space (except for first word)
-            if (i > 0) {
-                result.push({ char: ' ', status: 'word-boundary' });
-            }
-            
-            if (item.type === 'match') {
-                // All characters are correct
-                for (let char of item.userWord) {
-                    result.push({ char, status: 'correct' });
-                    correct++;
-                }
-            } else if (item.type === 'substitute') {
-                this.handleSubstitution(item, result);
-                
-                // Count characters manually for this substitution
-                const ref = item.refWord;
-                const user = item.userWord;
-                
-                // Simple character counting for substitution
-                for (let i = 0; i < Math.max(ref.length, user.length); i++) {
-                    if (i < user.length) {
-                        if (i < ref.length && ref[i] === user[i]) {
-                            correct++;
-                        } else {
-                            wrong++;
-                        }
-                    } else {
-                        missing++;
-                    }
-                }
-            } else if (item.type === 'insert') {
-                // Extra word
-                for (let char of item.userWord) {
-                    result.push({ char, status: 'extra' });
-                    extra++;
-                }
-            } else if (item.type === 'delete') {
-                // Missing word - show as underscores
-                const wordLength = item.refWord.length;
-                
-                for (let k = 0; k < wordLength; k++) {
-                    if (k > 0) {
-                        result.push({ char: ' ', status: 'char-space' });
-                    }
-                    result.push({ char: '_', status: 'missing' });
-                    missing++;
-                }
-            }
+        // Get original words WITHOUT normalization for display
+const userOriginalWords = convertedUserText
+    .replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(w => w.length > 0);
+
+let wordIndex = 0;
+
+for (let i = 0; i < alignment.length; i++) {
+    const item = alignment[i];
+    
+    if (i > 0) {
+        result.push({ char: ' ', status: 'word-boundary' });
+    }
+    
+    if (item.type === 'match') {
+        // Use ORIGINAL word (with original capitalization)
+        const originalWord = userOriginalWords[wordIndex] || item.userWord;
+        for (let char of originalWord) {
+            result.push({ char, status: 'correct' });
+            correct++;
         }
+        wordIndex++;
+    } else if (item.type === 'substitute') {
+        // Wrong word - use ORIGINAL capitalization
+        const originalWord = userOriginalWords[wordIndex] || item.userWord;
+        for (let char of originalWord) {
+            result.push({ char, status: 'wrong' });
+            wrong++;
+        }
+        wordIndex++;
+    } else if (item.type === 'insert') {
+        const originalWord = userOriginalWords[wordIndex] || item.userWord;
+        for (let char of originalWord) {
+            result.push({ char, status: 'extra' });
+            extra++;
+        }
+        wordIndex++;
+    } else if (item.type === 'delete') {
+        const wordLength = item.refWord.length;
+        for (let k = 0; k < wordLength; k++) {
+            if (k > 0) {
+                result.push({ char: ' ', status: 'char-space' });
+            }
+            result.push({ char: '_', status: 'missing' });
+            missing++;
+        }
+        // Don't increment wordIndex for missing words
+    }
+}
         
         return {
             chars: result,
