@@ -223,80 +223,64 @@ export class Statistics {
     }
     
     /**
-     * Generate HTML for a sentence result with word-level feedback
-     */
-    generateResultHTML(result) {
-        const { reference, userInput } = result;
-        
-        // Get normalized comparison for word alignment
-        const refNormalized = reference.replace(/[.,!?;:()]/g, '').toLowerCase();
-        const userNormalized = userInput.replace(/[.,!?;:()]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
-        
-        const refWords = refNormalized.split(/\s+/).filter(w => w.length > 0);
-        const userWords = userNormalized.split(/\s+/).filter(w => w.length > 0);
-        
-        const alignment = TextComparison.alignSequencesWithGaps(refWords, userWords);
-        
-        // Build word-to-punctuation mapping from original reference text
-        const originalText = reference;
-        const words = originalText.split(/\s+/);
-        const wordPunctuation = [];
-        
-        words.forEach(word => {
-            // Extract punctuation from the end of each word
-            const punctMatch = word.match(/([.,!?;:""''()„""''‚'«»]+)$/);
-            const cleanWord = word.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]+/g, '');
-            
-            wordPunctuation.push({
-                word: cleanWord,
-                punctuation: punctMatch ? punctMatch[1] : ''
-            });
-        });
-        
-        let html = '';
-        let currentWordIndex = 0;
-        
-        alignment.forEach((item, index) => {
-            if (index > 0) html += ' ';
-            
-            if (item.type === 'match') {
-                html += `<span class="result-word-correct">${item.userWord}</span>`;
-                // Add punctuation for this word
-                if (currentWordIndex < wordPunctuation.length && wordPunctuation[currentWordIndex].punctuation) {
-                    html += `<span class="char-punctuation">${wordPunctuation[currentWordIndex].punctuation}</span>`;
-                }
-                currentWordIndex++;
-            } else if (item.type === 'substitute') {
-                html += `<span class="result-word-wrong" data-correct="${item.refWord}">${item.userWord}</span>`;
-                // Add punctuation for this word
-                if (currentWordIndex < wordPunctuation.length && wordPunctuation[currentWordIndex].punctuation) {
-                    html += `<span class="char-punctuation">${wordPunctuation[currentWordIndex].punctuation}</span>`;
-                }
-                currentWordIndex++;
-            } else if (item.type === 'insert') {
-                html += `<span class="result-word-extra">${item.userWord}</span>`;
-                // Extra words don't advance the punctuation index
-            } else if (item.type === 'delete') {
-                // Show each missing word with character-by-character underscores, clearly separated
-                const individualUnderscores = item.refWord.split('').map(() => '_').join(' ');
-                html += `<span class="result-word-missing" data-missing="${item.refWord}">${individualUnderscores}</span>`;
-                
-                // Add WIDE spacing between consecutive missing words for clear visual separation
-                const nextItem = alignment[index + 1];
-                if (nextItem && nextItem.type === 'delete') {
-                    html += '&nbsp;&nbsp;&nbsp;&nbsp;'; // 8 spaces = wide gap
-                }
-                
-                // Add punctuation for this missing word
-                if (currentWordIndex < wordPunctuation.length && wordPunctuation[currentWordIndex].punctuation) {
-                    html += `<span class="char-punctuation">${wordPunctuation[currentWordIndex].punctuation}</span>`;
-                }
-                currentWordIndex++;
-            }
-        });
-        
-        return html;
+ * Generate HTML for a sentence result with word-level feedback
+ */
+generateResultHTML(result) {
+    // Use the stored comparison that was calculated when ENTER was pressed
+    const { comparison, reference } = result;
+    
+    if (!comparison || !comparison.chars) {
+        console.error('No comparison data found for result:', result);
+        return '<span class="error">No comparison data available</span>';
     }
+    
+    let html = '';
+    let currentWord = '';
+    let currentWordStatus = 'correct';
+    let wordHasError = false;
+    
+    // Process each character from the stored comparison
+    comparison.chars.forEach((item, index) => {
+        const nextItem = comparison.chars[index + 1];
+        
+        if (item.status === 'word-boundary') {
+            // End of word - output the accumulated word
+            if (currentWord) {
+                const className = wordHasError ? 'result-word-wrong' : 'result-word-correct';
+                html += `<span class="${className}">${currentWord}</span>`;
+                currentWord = '';
+                wordHasError = false;
+            }
+            html += ' '; // Add space between words
+        } else if (item.status === 'punctuation') {
+            // Output current word if any
+            if (currentWord) {
+                const className = wordHasError ? 'result-word-wrong' : 'result-word-correct';
+                html += `<span class="${className}">${currentWord}</span>`;
+                currentWord = '';
+                wordHasError = false;
+            }
+            // Add punctuation
+            html += `<span class="char-punctuation">${item.char}</span>`;
+        } else {
+            // Regular character - accumulate into current word
+            currentWord += item.char;
+            
+            // Track if this word has any errors
+            if (item.status === 'wrong' || item.status === 'missing' || item.status === 'extra') {
+                wordHasError = true;
+            }
+        }
+    });
+    
+    // Output any remaining word
+    if (currentWord) {
+        const className = wordHasError ? 'result-word-wrong' : 'result-word-correct';
+        html += `<span class="${className}">${currentWord}</span>`;
+    }
+    
+    return html;
+}
     
     /**
      * Add tooltip event listeners to wrong/missing words
