@@ -395,45 +395,62 @@ for (let i = 0; i < alignment.length; i++) {
      * Calculate word-level statistics
      */
     static calculateWordStats(reference, userInput, options = {}) {
-        const {
-            ignoreCase = true,
-            ignorePunctuation = true
-        } = options;
-        
-        const refNormalized = GermanChars.normalizeForComparison(reference, {
-            ignorePunctuation,
-            ignoreCase,
-            convertGermanChars: false
-        });
-        
-        const userNormalized = GermanChars.normalizeForComparison(userInput, {
-            ignorePunctuation,
-            ignoreCase,
-            convertGermanChars: true
-        });
-        
-        const refWords = GermanChars.splitIntoWords(refNormalized);
-        const userWords = GermanChars.splitIntoWords(userNormalized);
-        
-        const alignment = this.alignSequencesWithGaps(refWords, userWords);
-        
-        let correctWords = 0;
-        let wrongWords = 0;
-        const totalWords = refWords.length;
-        
-        alignment.forEach(item => {
-            if (item.type === 'match') {
-                correctWords++;
-            } else if (item.type === 'substitute' || item.type === 'delete') {
-                wrongWords++;
+    const {
+        ignoreCase = true,
+        ignorePunctuation = true
+    } = options;
+    
+    // IMPORTANT: Use the EXACT SAME comparison as compareTexts
+    // Just count the results from the comparison instead of doing separate alignment
+    const comparison = this.compareTexts(reference, userInput, options);
+    
+    // Count words from the comparison result
+    let correctWords = 0;
+    let wrongWords = 0;
+    let currentWordHasError = false;
+    let inWord = false;
+    
+    comparison.chars.forEach(item => {
+        if (item.status === 'word-boundary') {
+            // End of word - check if it had errors
+            if (inWord) {
+                if (currentWordHasError) {
+                    wrongWords++;
+                } else {
+                    correctWords++;
+                }
             }
-            // Note: 'insert' type doesn't count toward wrong words in original logic
-        });
-        
-        return {
-            correctWords,
-            wrongWords,
-            totalWords
-        };
+            currentWordHasError = false;
+            inWord = false;
+        } else if (item.status === 'missing') {
+            // Missing characters count as word errors
+            currentWordHasError = true;
+            inWord = true;
+        } else if (item.status === 'wrong' || item.status === 'extra') {
+            // Wrong or extra characters count as word errors
+            currentWordHasError = true;
+            inWord = true;
+        } else if (item.status === 'correct') {
+            // Part of a word
+            inWord = true;
+        }
+    });
+    
+    // Handle last word if we ended in a word
+    if (inWord) {
+        if (currentWordHasError) {
+            wrongWords++;
+        } else {
+            correctWords++;
+        }
     }
+    
+    const totalWords = correctWords + wrongWords;
+    
+    return {
+        correctWords,
+        wrongWords,
+        totalWords
+    };
+}
 }
