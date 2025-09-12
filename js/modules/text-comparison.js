@@ -452,5 +452,5 @@ for (let i = 0; i < alignment.length; i++) {
         wrongWords,
         totalWords
     };
-}
+    }
 }
