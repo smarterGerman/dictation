@@ -866,5 +866,21 @@
   "B2L63": {
     "audioUrl": "https://smartergerman.github.io/dictation/audio/B2L63.mp3",
     "vttUrl": "https://smartergerman.github.io/dictation/audio/B2L63.vtt"
+  },
+  "B2L64": {
+    "audioUrl": "https://smartergerman.github.io/dictation/audio/B2L64.mp3",
+    "vttUrl": "https://smartergerman.github.io/dictation/audio/B2L64.vtt"
+  },
+  "B2L65": {
+    "audioUrl": "https://smartergerman.github.io/dictation/audio/B2L65.mp3",
+    "vttUrl": "https://smartergerman.github.io/dictation/audio/B2L65.vtt"
+  },
+  "B2L66": {
+    "audioUrl": "https://smartergerman.github.io/dictation/audio/B2L66.mp3",
+    "vttUrl": "https://smartergerman.github.io/dictation/audio/B2L66.vtt"
+  },
+  "B2L67": {
+    "audioUrl": "https://smartergerman.github.io/dictation/audio/B2L67.mp3",
+    "vttUrl": "https://smartergerman.github.io/dictation/audio/B2L67.vtt"
   }
 }
