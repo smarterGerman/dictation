@@ -1,0 +1,137 @@
+WEBVTT
+
+1
+00:00:07.900 --> 00:00:16.560
+Sprachassistenten gibt es seit knapp 10 Jahren im Überfluss, und jeder Smartphone-Nutzer kennt mindestens das, was er auf seinem Gerät hat.
+
+2
+00:00:17.300 --> 00:00:24.000
+Als Software sind sie eine Erweiterung der Diktierprogramme, die früher in Büros Einsatz fanden.
+
+3
+00:00:24.000 --> 00:00:40.820
+Während jedoch die früheren Programme nur „gehört“ und das Gehörte verschriftlicht haben, sind die modernen Assistenten in der Lage, Sprachbefehle mittels Sprachanalyse in Dienste umzusetzen, Informationen abzufragen und Dialoge zu führen.
+
+4
+00:00:40.820 --> 00:00:57.060
+Der in der gesprochenen Sprache eingehende Befehl wird mithilfe verschiedener Algorithmen semantisch interpretiert, logisch verarbeitet und als Ergebnis formuliert bzw. eingesetzt, um eine weitere beabsichtigte Handlung zu vollziehen.
+
+5
+00:00:57.800 --> 00:01:03.040
+Bei Unklarheiten werden Rückfragen gestellt oder es wird um eine Bestätigung gebeten.
+
+6
+00:01:03.780 --> 00:01:07.320
+Es ist also ein rundum gutes und sinnvolles Produkt.
+
+7
+00:01:07.320 --> 00:01:23.520
+Nun haben die Sprachassistenten, wie Google Assistant, Siri, Alexa oder Cortana keinen Nutzen, solange die Person ihre Gedanken nicht laut aussprechen kann, wie alle Menschen, die in der Gebärdensprache kommunizieren.
+
+8
+00:01:24.480 --> 00:01:28.720
+Wie können Personen, die nicht laut sprechen können, solche Systeme nutzen?
+
+9
+00:01:28.720 --> 00:01:41.900
+Diese Frage stand am Anfang der Überlegungen für die Mitarbeiter der Digitalagentur MRM//McCann, die auf den Einsatz neuer Technologien und die Trendforschung spezialisiert ist.
+
+10
+00:01:41.900 --> 00:02:06.120
+Technisch stand das Team des Digitallabs LAB13 vor dem Problem, wie Sprachassistenten die Gebärdensprache in Befehle umsetzen könnten, um ein Tool zu entwickeln, das Hörbeeinträchtigten eine einwandfreie Kommunikation mit dem Sprachassistenten ermöglicht und sich darüber hinaus problemlos in den Alltag integrieren lässt.
+
+11
+00:02:06.120 --> 00:02:09.140
+So wurde das Tool Signs geboren.
+
+12
+00:02:10.100 --> 00:02:21.300
+Der erste Schritt führte die Entwickler zu einer Lehrerin für Gebärdensprache, die aus ihrem Alltag über die Probleme berichtete und Ideen für die ersten Entwürfe lieferte.
+
+13
+00:02:21.300 --> 00:02:37.220
+Mittels einer Kamera wurden in der ersten Phase diverse Bewegungen der Finger und Hände aufgezeichnet, um daraus allgemeine Strukturen abzuleiten, die typisch für bestimmte Gebärden sind, das sogenannte Tracking der Gebärden.
+
+14
+00:02:38.160 --> 00:02:46.100
+Darauf folgte ein weiterer Prototyp, in den zusätzlich der gesamte Oberkörper der Person miteinbezogen wurde.
+
+15
+00:02:46.100 --> 00:02:54.980
+Dank der Mitarbeit zahlreicher Freiwilliger entstand in kurzer Zeit ein Pool an aufgezeichneten Gebärden in einer Standardform.
+
+16
+00:02:55.880 --> 00:03:03.240
+Diese bildeten eine Basis für die systematische Erfassung von Gesten, sowie deren Kategorisierung und Zuordnung.
+
+17
+00:03:03.240 --> 00:03:07.500
+Die Idee selbst ist nicht kompliziert.
+
+18
+00:03:07.500 --> 00:03:25.440
+Die Gebärden des Nutzers werden durch eine Kamera, wie jedes Endgerät ein Laptop, ein Smartphone oder eine Uhr sie hat, als Videostream aufgezeichnet, wobei das Ganze in Einzelbilder zerlegt und in das System gespeist wird.
+
+19
+00:03:25.440 --> 00:03:31.760
+Signs gleicht die kommunizierten Gesten in Echtzeit mit der Wortdatenbank ab,
+
+20
+00:03:32.360 --> 00:03:37.220
+die Anwendung wandelt den Textbefehl für den Assistenten in ein Audio um.
+
+21
+00:03:37.600 --> 00:03:45.920
+Die Umwandlung des Textes in Audio ist notwendig, da die Schnittstellen der Voice Assistants meist nur den Ton verstehen.
+
+22
+00:03:45.920 --> 00:03:48.700
+Die Antwort funktioniert umgekehrt:
+
+23
+00:03:48.840 --> 00:03:58.800
+Das Audio wird mittels des Googles Cloud Speech-to-Text-Service in einen geschriebenen Text umgewandelt, der anschließend auf dem Bildschirm erscheint.
+
+24
+00:03:59.380 --> 00:04:12.280
+Eine größere Schwierigkeit als die Entwicklung des Prinzips selbst war jedoch die Übertragung der Struktur der Gebärdensprache auf das gesprochene Standarddeutsch, mit dem der Sprachassistent arbeitet.
+
+25
+00:04:12.280 --> 00:04:23.740
+Allem voran ist die Satzstellung in beiden Varianten nicht gleich, denn die Gebärdensprache verfügt über keine grammatikalisch gekennzeichneten Zeitformen und keine Füllwörter.
+
+26
+00:04:24.460 --> 00:04:33.000
+So gesehen, ähnelt ihre Grundstruktur weitgehend der des Chinesischen und weist große Unterschiede zur deutschen Standardgrammatik auf.
+
+27
+00:04:33.700 --> 00:04:37.300
+Für die Programmierung hatte das sowohl Vor- als auch Nachteile.
+
+28
+00:04:37.300 --> 00:04:53.340
+Die Übersetzung der Gebärden in eine Wortvariante erschien einfach, denn aus der Frage „Wann habe ich meinen Arzttermin?“ blieb die Struktur „Arzt Termin“ übrig, was als Befehl für die Suche völlig ausreicht.
+
+29
+00:04:54.160 --> 00:05:03.820
+Damit das für den Sprachassistenten jedoch verständlich ist, musste ein Zwischenschritt eingebaut werden, den die Entwickler „ein kontextsensitives System“ nennen.
+
+30
+00:05:03.820 --> 00:05:14.760
+Dieses bringt die Struktur, die aus den Gebärden dekodiert wurde, vor der Audio-Umwandlung in die grammatikalisch korrekte Form des gesprochenen Deutschen,
+
+31
+00:05:15.340 --> 00:05:21.020
+indem es den Satz sinngemäß füllt und die Wörter in die richtige Reihenfolge stellt.
+
+32
+00:05:21.920 --> 00:05:29.680
+Eine weitere Hürde bestand darin, dass einige Gebärden zwei Bedeutungen haben, die nur im Kontext zu verstehen sind.
+
+33
+00:05:29.680 --> 00:05:32.240
+Auch dafür fand man eine Lösung:
+
+34
+00:05:33.080 --> 00:07:25.200
+Indem das kontextsensitive System den Sinn des Satzes analysiert, wählt es aus eingespeisten Vorschlägen die beabsichtigte Bedeutung.
