@@ -404,7 +404,7 @@ body {
 }
 
 .char-correct{color:#059669;font-weight:500;} 
-.char-wrong-position{color:#d97706;font-weight:500;} 
+ 
 .char-wrong{color:#dc2626;text-decoration:underline;font-weight:500;} 
 .char-missing{color:#d97706;font-style:italic;font-weight:500;} 
 .char-extra{color:#2563eb;font-weight:500;} 
