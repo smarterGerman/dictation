@@ -131,6 +131,11 @@ export class KeyboardShortcuts {
      * Handle global keydown events
      */
     handleGlobalKeyDown(e) {
+        if (this.deferToTutorial(e)) {
+            if (!['Shift', 'Control', 'Meta', 'Alt'].includes(e.key)) e.preventDefault();
+            return;
+        }
+
         if (!this.isEnabled) return;
         
         // Ignore key repeat events
@@ -173,6 +178,11 @@ export class KeyboardShortcuts {
      * Handle keydown events in the user input field
      */
     handleInputKeyDown(e) {
+        if (this.deferToTutorial(e)) {
+            if (!['Shift', 'Control', 'Meta', 'Alt'].includes(e.key)) e.preventDefault();
+            return;
+        }
+
         if (!this.isEnabled) return;
         
         // Ignore key repeat events
@@ -205,6 +215,46 @@ export class KeyboardShortcuts {
         }
     }
     
+
+    /**
+     * While the tutorial sits on a keyboard step, the expected combo belongs to
+     * the TUTORIAL: it executes the action itself, validates, and advances. If
+     * a handler here consumes the key first (the input handler even stops
+     * propagation), the tutorial never sees it and the step looks dead - the
+     * 2026-08-08 fold regression. Mirrors the retired fork's coordination block.
+     * Pure check: callers preventDefault for non-modifier matches.
+     */
+    deferToTutorial(e) {
+        const tut = window.activeTutorial;
+        if (!tut || !tut.isActive) return false;
+        const step = tut.steps && tut.steps[tut.currentStep];
+        if (!step || step.action !== 'keyboard') return false;
+        if (['Shift', 'Control', 'Meta', 'Alt'].includes(e.key)) return true;
+        const combo = this.getKeyCombo(e);
+        const expected = this.formatTutorialKeyCombo(step.keyCombo);
+        // Meta and Ctrl are interchangeable across platforms
+        const swapped = expected.includes('meta')
+            ? expected.replace('meta', 'ctrl')
+            : expected.replace('ctrl', 'meta');
+        return combo === expected || combo === swapped;
+    }
+
+    /**
+     * Normalize a tutorial step's keyCombo array to getKeyCombo's string form.
+     */
+    formatTutorialKeyCombo(keyCombo) {
+        if (!keyCombo || !Array.isArray(keyCombo)) return '';
+        const parts = [];
+        const normalized = keyCombo.map(k => k.toLowerCase());
+        if (normalized.includes('shift')) parts.push('shift');
+        if (normalized.includes('ctrl')) parts.push('ctrl');
+        if (normalized.includes('meta')) parts.push('meta');
+        if (normalized.includes('alt')) parts.push('alt');
+        const mainKey = keyCombo.find(k => !['Shift', 'Ctrl', 'Meta', 'Alt'].includes(k));
+        if (mainKey) parts.push(mainKey.toLowerCase());
+        return parts.join('+');
+    }
+
     /**
      * Generate key combination string from event
      */
