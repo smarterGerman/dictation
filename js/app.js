@@ -11,7 +11,6 @@ import { KeyboardShortcuts } from './modules/keyboard-shortcuts.js';
 import { Statistics } from './modules/statistics.js';
 import { Exporter } from './modules/export.js';
 import { DOMHelpers } from './utils/dom-helpers.js';
-import { Tutorial } from './modules/tutorial.js';
 
 export class DictationApp {
     constructor() {
@@ -50,22 +49,22 @@ export class DictationApp {
             
             // Initialize auto-resize first
             this.autoResize.initialize();
-
-            // Tutorial launcher (only with ?tutorial=1)
-            if (this.tutorialMode) {
-                const tutorialBtn = DOMHelpers.getElementById('tutorialLauncher');
-                if (tutorialBtn) tutorialBtn.hidden = false;
-                this.setupTutorialLauncher();
-            }
             
             // Initialize audio player
             const audioElement = DOMHelpers.getElementById('audioPlayer', true);
             this.audioPlayer = new AudioPlayer(audioElement);
             this.audioPlayer.initializeElements();
 
-            // Initialize tutorial after audio player (only with ?tutorial=1)
+            // Tutorial (the 8 lesson-01 embeds pass ?tutorial=1). Loaded on
+            // demand so the 1,599 ordinary embeds never download the module.
             if (this.tutorialMode) {
-                this.tutorial = new Tutorial(this);
+                try {
+                    const { Tutorial } = await import('./modules/tutorial.js');
+                    this.tutorial = new Tutorial(this);
+                    this.setupTutorialLauncher();
+                } catch (e) {
+                    console.error('Tutorial failed to load', e);
+                }
             }
             
             // Initialize UI controls
@@ -349,20 +348,18 @@ export class DictationApp {
             );
         }
         
-        // Only inject dummy data for tutorial if there are no results AND the user has not entered any text
+        // Tutorial demo row: the results-tooltip step needs one recorded sentence
+        // to point at. Use the real first sentence of the loaded lesson (the
+        // fork's version reached for a state.getLessonId API this app does not
+        // have, so its lookup was dead and a hardcoded sentence always showed).
         if (sessionResults.length === 0 && window.activeTutorial && userInput.trim() === '') {
-            // Use a known reference from the lesson if available, else fallback
             let referenceText = 'es ist ein Test';
             let dummyInput = 'es ist ';
-            try {
-                const lessonId = this.state.getLessonId && this.state.getLessonId();
-                if (lessonId && this.lessonLoader && this.lessonLoader.hasLessons()) {
-                    const lesson = this.lessonLoader.getLessonData(lessonId);
-                    if (lesson && lesson.sentences && lesson.sentences[0]) {
-                        referenceText = lesson.sentences[0].text || referenceText;
-                    }
-                }
-            } catch (e) {}
+            const cues = this.audioPlayer && this.audioPlayer.vttCues;
+            if (cues && cues.length && cues[0].text) {
+                referenceText = cues[0].text;
+                dummyInput = referenceText.split(/\s+/).slice(0, 2).join(' ') + ' ';
+            }
             this.statistics.recordSentenceResult(
                 0,
                 referenceText,
@@ -528,27 +525,22 @@ export class DictationApp {
      * Setup tutorial launcher button
      */
     setupTutorialLauncher() {
+        // Hover styling lives in .tutorial-btn-launcher:hover (styles.css); the
+        // fork's inline mouseenter/mouseleave handlers lost to its !important
+        // rules and carried the retired palette, so they were dropped.
         const tutorialBtn = DOMHelpers.getElementById('tutorialLauncher');
-        if (tutorialBtn) {
-            DOMHelpers.addEventListener(tutorialBtn, 'click', () => {
-                if (this.tutorial) {
-                    this.tutorial.start();
-                } else {
-                    console.warn('Tutorial not initialized yet');
-                }
-            });
-
-            // Add hover effect
-            tutorialBtn.addEventListener('mouseenter', function() {
-                this.style.background = '#005c99';
-                this.style.transform = 'translateY(-1px)';
-            });
-
-            tutorialBtn.addEventListener('mouseleave', function() {
-                this.style.background = '#007acc';
-                this.style.transform = 'translateY(0)';
-            });
+        if (!tutorialBtn) {
+            console.warn('tutorialLauncher button missing from the page');
+            return;
         }
+        tutorialBtn.hidden = false;
+        DOMHelpers.addEventListener(tutorialBtn, 'click', () => {
+            if (this.tutorial) {
+                this.tutorial.start();
+            } else {
+                console.warn('Tutorial not initialized yet');
+            }
+        });
     }
 
     /**

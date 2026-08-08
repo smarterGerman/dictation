@@ -2,8 +2,8 @@
  * Statistics tracking and calculation
  */
 import { TimeHelpers } from '../utils/time-helpers.js';
-import { DOMHelpers } from '../utils/dom-helpers.js';
-import { TextComparison } from './text-comparison.js';
+import { DOMHelpers, escapeHtml } from '../utils/dom-helpers.js';
+import { TextComparison, PUNCT_RE_G, splitPunctuation } from './text-comparison.js';
 
 export class Statistics {
     constructor() {
@@ -61,7 +61,9 @@ export class Statistics {
         }
         
         // Calculate comparison and word stats
-        const comparison = TextComparison.compareTexts(reference, userInput, options);
+        // (The full compareTexts alignment used to be computed and stored here as
+        // result.comparison; nothing ever read it, so each sentence paid a DP
+        // alignment for a dead field. Removed 2026-08-08.)
         const wordStats = TextComparison.calculateWordStats(reference, userInput, options);
         
         const result = {
@@ -71,7 +73,6 @@ export class Statistics {
             ignoreCaseUsed: options.ignoreCase !== undefined ? options.ignoreCase : true,
             stats: wordStats,
             time: sentenceTime,
-            comparison,
             timestamp: TimeHelpers.now()
         };
         
@@ -227,20 +228,20 @@ export class Statistics {
      * Generate HTML for a sentence result with word-level feedback
      */
     generateResultHTML(result) {
-        const { reference, userInput, ignoreCaseUsed } = result;
+        const { reference, userInput, ignoreCaseUsed } = result || {};
         if (typeof reference !== 'string' || typeof userInput !== 'string') {
-            return '';
+            console.error('generateResultHTML: malformed result', result);
+            return '<span class="error">Result could not be displayed</span>';
         }
 
         // Use the case sensitivity setting that was used when this result was recorded
         const ignoreCase = ignoreCaseUsed !== undefined ? ignoreCaseUsed : true;
 
-        // Strip the SAME punctuation set the live comparison strips, so a word
-        // can never be painted wrong here while the live feedback called it
-        // correct.
-        const PUNCT_G = /[.,!?;:"'()\u201E\u201C\u201D\u2018\u2019\u201A\u201B\u201F\u2039\u203A\u00AB\u00BB\u2026\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g;
-        const strip = (t) => t.replace(PUNCT_G, '');
-        const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        // Strip EXACTLY the set grading strips - imported from text-comparison.js,
+        // the single home of that set, so this screen can never disagree with
+        // the live comparison again.
+        const strip = (t) => t.replace(PUNCT_RE_G, '');
+        const esc = escapeHtml;
 
         // Reference tokens keep their VERBATIM form (punctuation, case) next to
         // the stripped key used for alignment, so the learner always reads the
@@ -281,12 +282,9 @@ export class Statistics {
                 // Underscores stand for the letters to type; the word's own
                 // leading/trailing punctuation is shown verbatim around them.
                 const pair = refPairs[refIdx];
-                let lead = 0;
-                let trail = pair.verbatim.length;
-                while (lead < trail && strip(pair.verbatim[lead]) === '') lead++;
-                while (trail > lead && strip(pair.verbatim[trail - 1]) === '') trail--;
+                const parts = splitPunctuation(pair.verbatim);
                 const underscores = pair.key.split('').map(() => '_').join(' ');
-                html += `<span class="result-word-missing" data-missing="${esc(pair.verbatim)}">${esc(pair.verbatim.slice(0, lead))}${underscores}${esc(pair.verbatim.slice(trail))}</span>`;
+                html += `<span class="result-word-missing" data-missing="${esc(pair.verbatim)}">${esc(parts.lead)}${underscores}${esc(parts.trail)}</span>`;
 
                 // Wide gap between consecutive missing words for clear separation
                 const nextItem = alignment[index + 1];

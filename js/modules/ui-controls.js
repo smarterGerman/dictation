@@ -2,9 +2,9 @@
  * UI Controls and interactions
  */
 import { CONFIG } from '../config.js';
-import { DOMHelpers } from '../utils/dom-helpers.js';
+import { DOMHelpers, escapeHtml } from '../utils/dom-helpers.js';
 import { GermanChars } from './german-chars.js';
-import { TextComparison } from './text-comparison.js';
+import { TextComparison, PUNCT_RE, splitPunctuation } from './text-comparison.js';
 
 export class UIControls {
     constructor() {
@@ -179,8 +179,8 @@ console.groupEnd();
         // trailed it", which silently dropped punctuation INSIDE a word and in
         // front of it: "K.O." came out as "KO." and '"Ich' lost its quote. The
         // learner must always read the word exactly as it is written, even though
-        // the comparison itself still ignores punctuation.
-        const PUNCT_RE = /[.,!?;:"'()\u201E\u201C\u201D\u2018\u2019\u201A\u201B\u201F\u2039\u203A\u00AB\u00BB\u2026]/;
+        // the comparison itself still ignores punctuation. PUNCT_RE comes from
+        // text-comparison.js so display and grading share one set.
         const originalText = this.referenceText;
         const originalWords = originalText.split(/\s+/).filter(w => w.length > 0);
 
@@ -198,7 +198,9 @@ console.groupEnd();
         compWords.push(bucket);
 
         const emit = (ch, status) => {
-            const out = ch === ' ' ? '&nbsp;' : ch;
+            // escapeHtml: a learner typing < or & must see that character, not
+            // have it parsed as markup inside their own feedback.
+            const out = ch === ' ' ? '&nbsp;' : escapeHtml(ch);
             return this.focusModeActive ? out : `<span class="char-${status}">${out}</span>`;
         };
 
@@ -210,13 +212,7 @@ console.groupEnd();
             const original = originalWords[wi] || '';
             // Leading and trailing punctuation are emitted around the word; anything
             // in between (the dot in "K.O") is emitted where it sits.
-            let a = 0;
-            let b = original.length;
-            while (a < b && PUNCT_RE.test(original[a])) a++;
-            while (b > a && PUNCT_RE.test(original[b - 1])) b--;
-            const lead = original.slice(0, a);
-            const core = original.slice(a, b);
-            const trail = original.slice(b);
+            const { lead, core, trail } = splitPunctuation(original);
 
             for (const ch of lead) feedbackHTML += emit(ch, 'punctuation');
 

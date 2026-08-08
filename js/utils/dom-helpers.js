@@ -1,6 +1,13 @@
 /**
  * DOM Helper Utilities
  */
+
+// Escape a string for interpolation into innerHTML (text or a double-quoted
+// attribute). One definition so a fix lands everywhere.
+export function escapeHtml(t) {
+    return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 export class DOMHelpers {
     /**
      * Get element by ID with optional error handling

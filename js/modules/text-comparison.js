@@ -4,6 +4,25 @@
 import { CONFIG } from '../config.js';
 import { GermanChars } from './german-chars.js';
 
+
+// The ONE set of punctuation this tool ignores. Grading (compareTexts) and both
+// renderers (live feedback in ui-controls.js, results screen in statistics.js)
+// must strip the same set - when they diverge, a word can be graded correct but
+// painted wrong, or the other way round (that divergence was a real 2026-08-08
+// bug). Import these; never write the class out by hand again.
+export const PUNCT_RE = /[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/;
+export const PUNCT_RE_G = new RegExp(PUNCT_RE.source, 'g');
+
+// Split a word into leading punctuation, core, and trailing punctuation, so a
+// renderer can show the word verbatim while treating only the core as letters.
+export function splitPunctuation(word) {
+    let a = 0;
+    let b = word.length;
+    while (a < b && PUNCT_RE.test(word[a])) a++;
+    while (b > a && PUNCT_RE.test(word[b - 1])) b--;
+    return { lead: word.slice(0, a), core: word.slice(a, b), trail: word.slice(b) };
+}
+
 export class TextComparison {
     /**
      * Compare user input with reference text
@@ -21,8 +40,8 @@ export class TextComparison {
     let userForComparison = convertedUserText;
     
     if (ignorePunctuation) {
-        refForComparison = refForComparison.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '');
-        userForComparison = userForComparison.replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '');
+        refForComparison = refForComparison.replace(PUNCT_RE_G, '');
+        userForComparison = userForComparison.replace(PUNCT_RE_G, '');
     }
     
     // Store original for character extraction
@@ -264,7 +283,7 @@ export class TextComparison {
         
         // Get original words WITHOUT normalization for display
 const userOriginalWords = convertedUserText
-    .replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '')
+    .replace(PUNCT_RE_G, '')
     .replace(/\s+/g, ' ')
     .trim()
     .split(/\s+/)
