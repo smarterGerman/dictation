@@ -11,6 +11,7 @@ import { KeyboardShortcuts } from './modules/keyboard-shortcuts.js';
 import { Statistics } from './modules/statistics.js';
 import { Exporter } from './modules/export.js';
 import { DOMHelpers } from './utils/dom-helpers.js';
+import { Tutorial } from './modules/tutorial.js';
 
 export class DictationApp {
     constructor() {
@@ -23,6 +24,11 @@ export class DictationApp {
         this.keyboard = new KeyboardShortcuts();
         this.statistics = new Statistics();
         this.exporter = new Exporter();
+        this.tutorial = null;
+        // Tutorial mode: the lesson-01 Teachable embeds pass ?tutorial=1.
+        // Without it the tutorial is never constructed and the launcher
+        // button stays hidden, so the ordinary tool is untouched.
+        this.tutorialMode = new URLSearchParams(window.location.search).get('tutorial') === '1';
         
         // Initialization flag
         this.initialized = false;
@@ -44,11 +50,23 @@ export class DictationApp {
             
             // Initialize auto-resize first
             this.autoResize.initialize();
+
+            // Tutorial launcher (only with ?tutorial=1)
+            if (this.tutorialMode) {
+                const tutorialBtn = DOMHelpers.getElementById('tutorialLauncher');
+                if (tutorialBtn) tutorialBtn.hidden = false;
+                this.setupTutorialLauncher();
+            }
             
             // Initialize audio player
             const audioElement = DOMHelpers.getElementById('audioPlayer', true);
             this.audioPlayer = new AudioPlayer(audioElement);
             this.audioPlayer.initializeElements();
+
+            // Initialize tutorial after audio player (only with ?tutorial=1)
+            if (this.tutorialMode) {
+                this.tutorial = new Tutorial(this);
+            }
             
             // Initialize UI controls
             this.uiControls.initialize();
@@ -331,6 +349,28 @@ export class DictationApp {
             );
         }
         
+        // Only inject dummy data for tutorial if there are no results AND the user has not entered any text
+        if (sessionResults.length === 0 && window.activeTutorial && userInput.trim() === '') {
+            // Use a known reference from the lesson if available, else fallback
+            let referenceText = 'es ist ein Test';
+            let dummyInput = 'es ist ';
+            try {
+                const lessonId = this.state.getLessonId && this.state.getLessonId();
+                if (lessonId && this.lessonLoader && this.lessonLoader.hasLessons()) {
+                    const lesson = this.lessonLoader.getLessonData(lessonId);
+                    if (lesson && lesson.sentences && lesson.sentences[0]) {
+                        referenceText = lesson.sentences[0].text || referenceText;
+                    }
+                }
+            } catch (e) {}
+            this.statistics.recordSentenceResult(
+                0,
+                referenceText,
+                dummyInput,
+                { ignoreCase: true, ignorePunctuation: true }
+            );
+        }
+
         // Show final statistics
         const stats = this.statistics.showFinalResults();
         this.state.showStats();
@@ -484,6 +524,33 @@ export class DictationApp {
         }
     }
     
+    /**
+     * Setup tutorial launcher button
+     */
+    setupTutorialLauncher() {
+        const tutorialBtn = DOMHelpers.getElementById('tutorialLauncher');
+        if (tutorialBtn) {
+            DOMHelpers.addEventListener(tutorialBtn, 'click', () => {
+                if (this.tutorial) {
+                    this.tutorial.start();
+                } else {
+                    console.warn('Tutorial not initialized yet');
+                }
+            });
+
+            // Add hover effect
+            tutorialBtn.addEventListener('mouseenter', function() {
+                this.style.background = '#005c99';
+                this.style.transform = 'translateY(-1px)';
+            });
+
+            tutorialBtn.addEventListener('mouseleave', function() {
+                this.style.background = '#007acc';
+                this.style.transform = 'translateY(0)';
+            });
+        }
+    }
+
     /**
      * Show loading error
      */
