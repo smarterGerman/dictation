@@ -68,6 +68,7 @@ export class Statistics {
             sentenceIndex,
             reference,
             userInput,
+            ignoreCaseUsed: options.ignoreCase !== undefined ? options.ignoreCase : true,
             stats: wordStats,
             time: sentenceTime,
             comparison,
@@ -226,81 +227,76 @@ export class Statistics {
      * Generate HTML for a sentence result with word-level feedback
      */
     generateResultHTML(result) {
-    const { comparison, reference } = result;
-    
-    if (!comparison || !comparison.chars) {
-        return '<span class="error">No comparison data available</span>';
-    }
-    
-    // Get reference words for tooltips
-    const refWords = reference
-        .replace(/[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .split(/\s+/);
-    
-    let html = '';
-    let currentWord = '';
-    let wordHasError = false;
-    let currentWordIndex = 0;
-    let isMissingWord = false;
-    
-    comparison.chars.forEach(item => {
-        if (item.status === 'word-boundary') {
-            // Output current word with appropriate styling
-            if (currentWord) {
-                if (isMissingWord) {
-                    // Missing word - add data-missing attribute
-                    const refWord = refWords[currentWordIndex] || '?';
-                    html += `<span class="result-word-missing" data-missing="${refWord}">${currentWord}</span>`;
-                } else if (wordHasError) {
-                    // Wrong word - add data-correct attribute
-                    const refWord = refWords[currentWordIndex] || '?';
-                    html += `<span class="result-word-wrong" data-correct="${refWord}">${currentWord}</span>`;
-                } else {
-                    // Correct word
-                    html += `<span class="result-word-correct">${currentWord}</span>`;
-                }
-                
-                // Move to next word index (unless it was a missing word)
-                if (!isMissingWord) {
-                    currentWordIndex++;
-                }
-                
-                currentWord = '';
-                wordHasError = false;
-                isMissingWord = false;
-            }
-            html += ' ';
-        } else if (item.status === 'char-space') {
-            // Internal space within missing characters
-            currentWord += ' ';
-        } else if (item.status === 'missing') {
-            currentWord += item.char;
-            isMissingWord = true;
-        } else {
-            // Add character to current word
-            currentWord += item.char;
-            // Track if this word has any errors
-            if (item.status === 'wrong' || item.status === 'extra') {
-                wordHasError = true;
-            }
+        const { reference, userInput, ignoreCaseUsed } = result;
+        if (typeof reference !== 'string' || typeof userInput !== 'string') {
+            return '';
         }
-    });
-    
-        // Output last word
-        if (currentWord) {
-            if (isMissingWord) {
-                const refWord = refWords[currentWordIndex] || '?';
-                html += `<span class="result-word-missing" data-missing="${refWord}">${currentWord}</span>`;
-            } else if (wordHasError) {
-                const refWord = refWords[currentWordIndex] || '?';
-                html += `<span class="result-word-wrong" data-correct="${refWord}">${currentWord}</span>`;
-            } else {
-                html += `<span class="result-word-correct">${currentWord}</span>`;
+
+        // Use the case sensitivity setting that was used when this result was recorded
+        const ignoreCase = ignoreCaseUsed !== undefined ? ignoreCaseUsed : true;
+
+        // Strip the SAME punctuation set the live comparison strips, so a word
+        // can never be painted wrong here while the live feedback called it
+        // correct.
+        const PUNCT_G = /[.,!?;:"'()\u201E\u201C\u201D\u2018\u2019\u201A\u201B\u201F\u2039\u203A\u00AB\u00BB\u2026\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/g;
+        const strip = (t) => t.replace(PUNCT_G, '');
+        const esc = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+        // Reference tokens keep their VERBATIM form (punctuation, case) next to
+        // the stripped key used for alignment, so the learner always reads the
+        // sentence exactly as it is written: "K.O." is never shown as "KO".
+        const refPairs = reference.split(/\s+/)
+            .map(t => ({ verbatim: t, key: strip(t) }))
+            .filter(pair => pair.key.length > 0);
+        const userWords = userInput.split(/\s+/).map(t => strip(t)).filter(w => w.length > 0);
+
+        const refKeys = refPairs.map(pair => ignoreCase ? pair.key.toLowerCase() : pair.key);
+        const userKeys = userWords.map(w => ignoreCase ? w.toLowerCase() : w);
+
+        const alignment = TextComparison.alignSequencesWithGaps(refKeys, userKeys);
+
+        let html = '';
+        let refIdx = 0;
+        let userIdx = 0;
+
+        alignment.forEach((item, index) => {
+            if (index > 0) html += ' ';
+
+            if (item.type === 'match') {
+                // The learner got the word right: show the reference verbatim,
+                // with its own punctuation and capitalisation.
+                html += `<span class="result-word-correct">${esc(refPairs[refIdx].verbatim)}</span>`;
+                refIdx++;
+                userIdx++;
+            } else if (item.type === 'substitute') {
+                // Show what the learner typed; the tooltip carries the verbatim
+                // reference word ("K.O.", not "ko").
+                html += `<span class="result-word-wrong" data-correct="${esc(refPairs[refIdx].verbatim)}">${esc(userWords[userIdx])}</span>`;
+                refIdx++;
+                userIdx++;
+            } else if (item.type === 'insert') {
+                html += `<span class="result-word-extra">${esc(userWords[userIdx])}</span>`;
+                userIdx++;
+            } else if (item.type === 'delete') {
+                // Underscores stand for the letters to type; the word's own
+                // leading/trailing punctuation is shown verbatim around them.
+                const pair = refPairs[refIdx];
+                let lead = 0;
+                let trail = pair.verbatim.length;
+                while (lead < trail && strip(pair.verbatim[lead]) === '') lead++;
+                while (trail > lead && strip(pair.verbatim[trail - 1]) === '') trail--;
+                const underscores = pair.key.split('').map(() => '_').join(' ');
+                html += `<span class="result-word-missing" data-missing="${esc(pair.verbatim)}">${esc(pair.verbatim.slice(0, lead))}${underscores}${esc(pair.verbatim.slice(trail))}</span>`;
+
+                // Wide gap between consecutive missing words for clear separation
+                const nextItem = alignment[index + 1];
+                if (nextItem && nextItem.type === 'delete') {
+                    html += '&nbsp;&nbsp;&nbsp;&nbsp;';
+                }
+                refIdx++;
             }
-        }
-    
+        });
+
         return html;
     }
     
