@@ -1018,7 +1018,7 @@ body {
 
 /* Tutorial Header */
 .tutorial-header {
-    background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%) !important;
+    background: #F04E23 !important;
     color: white !important;
     padding: 8px 12px !important;
     display: flex !important;
@@ -1064,7 +1064,8 @@ body {
     background: none;
     border: none;
     color: white;
-    font-size: 1.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
     cursor: pointer;
     padding: 4px;
     border-radius: 4px;
@@ -1125,12 +1126,12 @@ body {
 }
 
 .tutorial-btn.primary {
-    background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+    background: #F04E23;
     color: white;
 }
 
 .tutorial-btn.primary:hover:not(:disabled) {
-    background: linear-gradient(135deg, #9333ea 0%, #db2777 100%);
+    background: #F04E23;
     transform: translateY(-1px);
 }
 
@@ -1331,7 +1332,7 @@ body {
     height: 45px;
     border: none;
     border-radius: 50%;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+    background: #F04E23 !important;
     color: white;
     font-size: 15px;
     font-weight: 600;
@@ -1345,8 +1346,7 @@ body {
 }
 
 .tutorial-btn-launcher:hover {
-    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+    background: #F04E23 !important;
     box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4) !important;
     transform: translateY(-1px) !important;
 }
-

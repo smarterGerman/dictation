@@ -230,6 +230,13 @@ export class KeyboardShortcuts {
         const step = tut.steps && tut.steps[tut.currentStep];
         if (!step || step.action !== 'keyboard') return false;
         if (['Shift', 'Control', 'Meta', 'Alt'].includes(e.key)) return true;
+
+        // The tutorial owns the definition of accepted aliases. In particular,
+        // the hint step accepts ß, slash, and comma for the same action.
+        if (typeof tut.isKeyComboMatch === 'function') {
+            return tut.isKeyComboMatch(e, step.keyCombo);
+        }
+
         const combo = this.getKeyCombo(e);
         const expected = this.formatTutorialKeyCombo(step.keyCombo);
         // Meta and Ctrl are interchangeable across platforms
@@ -329,28 +336,28 @@ export class KeyboardShortcuts {
                 description: 'Play/Pause audio'
             },
             {
-                combo: 'Shift + Cmd/Ctrl + ←',
+                combo: 'Shift + Cmd/Ctrl + Left Arrow',
                 description: 'Previous sentence'
             },
             {
-                combo: 'Shift + Cmd/Ctrl + →',
+                combo: 'Shift + Cmd/Ctrl + Right Arrow',
                 description: 'Next sentence'
             },
             {
-                combo: 'Shift + Cmd/Ctrl + ↑',
+                combo: 'Shift + Cmd/Ctrl + Up Arrow',
                 description: 'Play current sentence'
             },
             {
-                combo: 'Shift + Cmd/Ctrl + ↓',
+                combo: 'Shift + Cmd/Ctrl + Down Arrow',
                 description: 'Toggle playback speed'
             },
             {
-                combo: 'Shift + Cmd/Ctrl + / (or ß, ,)',
+                combo: 'Shift + Cmd/Ctrl + slash, ß, or comma',
                 description: 'Show hint'
             },
             {
                 combo: 'Enter',
-                description: 'Submit current sentence (in text input)'
+                description: 'Submit current sentence in the text input'
             }
         ];
     }

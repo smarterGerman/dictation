@@ -61,7 +61,7 @@ const allSteps = [
         keyCombo: ['Shift', 'Meta', 'Enter'], // Will handle cross-platform
         mobileHidden: true,
         validation: () => {
-            console.log('  🔍 VALIDATION DEBUG (keyboard-play):');
+            console.log('  VALIDATION DEBUG (keyboard-play):');
             console.log('    app.audioPlayer exists:', !!this.app.audioPlayer);
             if (this.app.audioPlayer) {
                 console.log('    isPlaying:', this.app.audioPlayer.isPlaying);
@@ -120,14 +120,14 @@ const allSteps = [
     {
         id: 'keyboard-play-current',
         title: 'Keyboard Shortcut: Repeat Sentence',
-        description: 'Press Shift + Cmd/Ctrl + ↑ (up arrow) to repeat the current sentence from the beginning.',
+        description: 'Press Shift + Cmd/Ctrl + the up arrow to repeat the current sentence from the beginning.',
         targetSelector: '#playBtn', // Use play button as visual reference
         highlightType: 'pulse',
         action: 'keyboard',
         keyCombo: ['Shift', 'Meta', 'ArrowUp'],
         mobileHidden: true,
         validation: () => {
-            console.log('  🔍 VALIDATION DEBUG (keyboard-play-current):');
+            console.log('  VALIDATION DEBUG (keyboard-play-current):');
             console.log('    app.audioPlayer exists:', !!this.app.audioPlayer);
             if (this.app.audioPlayer) {
                 console.log('    isPlaying:', this.app.audioPlayer.isPlaying);
@@ -169,14 +169,14 @@ const allSteps = [
     {
         id: 'keyboard-next',
         title: 'Keyboard Shortcut: Next Sentence',
-        description: 'Press Shift + Cmd/Ctrl + → (right arrow) to go to next sentence.',
+        description: 'Press Shift + Cmd/Ctrl + the right arrow to go to the next sentence.',
         targetSelector: '#nextBtn',
         highlightType: 'pulse',
         action: 'keyboard',
         keyCombo: ['Shift', 'Meta', 'ArrowRight'],
         mobileHidden: true,
         validation: () => {
-            console.log('  🔍 VALIDATION DEBUG (keyboard-next):');
+            console.log('  VALIDATION DEBUG (keyboard-next):');
             console.log('    currentStepStartIndex:', this.currentStepStartIndex);
             console.log('    app.audioPlayer exists:', !!this.app.audioPlayer);
             if (this.app.audioPlayer) {
@@ -187,11 +187,11 @@ const allSteps = [
             }
             
             if (this.currentStepStartIndex === undefined) {
-                console.log('    ❌ currentStepStartIndex is undefined');
+                console.log('    currentStepStartIndex is undefined');
                 return false;
             }
             if (!this.app.audioPlayer) {
-                console.log('    ❌ audioPlayer not available');
+                console.log('    audioPlayer not available');
                 return false;
             }
             const currentIndex = this.app.audioPlayer.currentCueIndex;
@@ -199,17 +199,17 @@ const allSteps = [
             
             // If we moved forward, great!
             if (currentIndex > this.currentStepStartIndex) {
-                console.log('    ✅ Moved forward successfully');
+                console.log('    Moved forward successfully');
                 return true;
             }
             
             // If we're at the last cue and started at the last cue, accept it
             if (this.currentStepStartIndex >= totalCues - 1 && currentIndex >= totalCues - 1) {
-                console.log('    ✅ Already at last cue, shortcut executed correctly');
+                console.log('    Already at last cue, shortcut executed correctly');
                 return true;
             }
             
-            console.log('    ❌ No forward movement detected');
+            console.log('    No forward movement detected');
             console.log('    Debug: startIndex=', this.currentStepStartIndex, 'currentIndex=', currentIndex, 'totalCues=', totalCues);
             return false;
         },
@@ -280,14 +280,14 @@ const allSteps = [
     {
         id: 'keyboard-prev',
         title: 'Keyboard Shortcut: Previous Sentence',
-        description: 'Press Shift + Cmd/Ctrl + ← (left arrow) to go to previous sentence.',
+        description: 'Press Shift + Cmd/Ctrl + the left arrow to go to the previous sentence.',
         targetSelector: '#prevBtn',
         highlightType: 'pulse',
         action: 'keyboard',
         keyCombo: ['Shift', 'Meta', 'ArrowLeft'],
         mobileHidden: true,
         validation: () => {
-            console.log('  🔍 VALIDATION DEBUG (keyboard-prev):');
+            console.log('  VALIDATION DEBUG (keyboard-prev):');
             console.log('    prevStepStartIndex:', this.prevStepStartIndex);
             console.log('    app.audioPlayer exists:', !!this.app.audioPlayer);
             if (this.app.audioPlayer) {
@@ -297,28 +297,28 @@ const allSteps = [
             }
             
             if (this.prevStepStartIndex === undefined) {
-                console.log('    ❌ prevStepStartIndex is undefined');
+                console.log('    prevStepStartIndex is undefined');
                 return false;
             }
             if (!this.app.audioPlayer) {
-                console.log('    ❌ audioPlayer not available');
+                console.log('    audioPlayer not available');
                 return false;
             }
             const currentIndex = this.app.audioPlayer.currentCueIndex;
             
             // If we moved backward, great!
             if (currentIndex < this.prevStepStartIndex) {
-                console.log('    ✅ Moved backward successfully');
+                console.log('    Moved backward successfully');
                 return true;
             }
             
             // If we're at index 0 and started at index 0, accept it
             if (this.prevStepStartIndex === 0 && currentIndex === 0) {
-                console.log('    ✅ Already at first cue, shortcut executed correctly');
+                console.log('    Already at first cue, shortcut executed correctly');
                 return true;
             }
             
-            console.log('    ❌ No backward movement detected');
+            console.log('    No backward movement detected');
             console.log('    Debug: startIndex=', this.prevStepStartIndex, 'currentIndex=', currentIndex);
             return false;
         },
@@ -346,12 +346,12 @@ const allSteps = [
     {
         id: 'speed-control',
         title: 'Speed Control',
-        description: 'Click the speed button 3x to cycle through all speeds (100%, 75%, 50%).',
+        description: 'Click the speed button three times to cycle through 100%, 75%, and 50%.',
         targetSelector: '#speedBtn',
         highlightType: 'pulse',
         action: 'click',
         validation: () => {
-    // Check if user completed a full cycle: 100% → 75% → 50% → 100%
+    // Check whether the user returned to 100% after visiting 75% and 50%.
     if (!this.speedStatesVisited) {
         this.speedStatesVisited = new Set();
     }
@@ -389,14 +389,14 @@ const allSteps = [
    {
     id: 'keyboard-speed',
     title: 'Keyboard Shortcut: Speed Control',
-        description: 'Press Shift + Cmd/Ctrl + ↓ (down arrow) to cycle: 100% → 75% → 50% → 100%. Audio will slow down accordingly.',
+        description: 'Press Shift + Cmd/Ctrl + the down arrow to cycle through 100%, 75%, 50%, and back to 100%. Audio will slow down accordingly.',
     targetSelector: '#speedBtn',
     highlightType: 'pulse',
     action: 'keyboard',
     keyCombo: ['Shift', 'Meta', 'ArrowDown'],
     mobileHidden: true,
     validation: () => {
-    console.log('  🔍 VALIDATION DEBUG (keyboard-speed):');
+    console.log('  VALIDATION DEBUG (keyboard-speed):');
     
     if (!this.speedStatesVisited) {
         this.speedStatesVisited = new Set();
@@ -449,7 +449,7 @@ const allSteps = [
 {
     id: 'hint-button',
     title: 'Hint System',
-    description: 'Click the "?" button to see the expected text for the current sentence.',
+    description: 'Click the Hint button to see the expected text for the current sentence.',
     targetSelector: '#hintBtn',
     highlightType: 'pulse',
     action: 'click',
@@ -474,14 +474,14 @@ const allSteps = [
     {
         id: 'keyboard-hint',
         title: 'Keyboard Shortcut: Hint System',
-        description: 'Press Shift + Cmd/Ctrl + ß (or / or ,) to show/hide the hint for the current sentence.',
+        description: 'Press Shift + Cmd/Ctrl with ß, slash, or comma to show or hide the hint for the current sentence.',
         targetSelector: '#hintBtn',
         highlightType: 'pulse',
         action: 'keyboard',
         keyCombo: ['Shift', 'Meta', 'ß'],
         mobileHidden: true,
         validation: () => {
-            console.log('  🔍 VALIDATION DEBUG (keyboard-hint):');
+            console.log('  VALIDATION DEBUG (keyboard-hint):');
             
             const hintDisplay = document.getElementById('hintDisplay');
             console.log('    hintDisplay element exists:', !!hintDisplay);
@@ -602,7 +602,7 @@ const allSteps = [
     {
         id: 'close-button',
         title: 'End Dictation',
-        description: 'Click the "X" button to end the dictation session and see your results.',
+        description: 'Click the End Dictation button to finish the session and see your results.',
         targetSelector: '#endDictationBtn',
         highlightType: 'pulse',
         action: 'click',
@@ -678,7 +678,7 @@ const allSteps = [
     {
         id: 'restart-button',
         title: 'Restart Button',
-        description: 'The Restart button (↻) clears all your text and starts the dictation over from the beginning. Click it to see how it works!',
+        description: 'The Restart button clears all your text and starts the dictation again from the beginning. Click it to see how it works!',
         targetSelector: '#restartBtn',
         highlightType: 'pulse',
         action: 'click',
@@ -747,7 +747,7 @@ const allSteps = [
         DOMHelpers.addEventListener(document, 'keydown', this.globalCaptureHandler, { capture: true });
         DOMHelpers.addEventListener(document, 'input', this.globalInputHandler);
 
-        console.log('🎯 Set window.activeTutorial:', !!window.activeTutorial);
+        console.log('Set window.activeTutorial:', !!window.activeTutorial);
 
         
         this.createTutorialOverlay();
@@ -774,13 +774,13 @@ const allSteps = [
             <div class="tutorial-header">
                 <div class="tutorial-header-progress">
                     <div class="step-counter">
-                        <span class="current-step">1</span> / <span class="total-steps">${this.steps.length + 1}</span>
+                        <span class="current-step">1</span> / <span class="total-steps">${this.steps.length}</span>
                     </div>
                     <div class="step-progress">
                         <div class="progress-fill"></div>
                     </div>
                 </div>
-                <button class="tutorial-close" id="tutorialClose">×</button>
+                <button class="tutorial-close" id="tutorialClose" aria-label="Close tutorial">Close</button>
             </div>
             <div class="tutorial-content">
                 <h3 class="step-title">Welcome to the Tutorial</h3>
@@ -1132,8 +1132,7 @@ this.highlightElement = highlight;
     updateProgress() {
         const progressFill = document.querySelector('.progress-fill');
         if (progressFill) {
-            // Total steps includes the completion screen
-            const totalSteps = this.steps.length + 1;
+            const totalSteps = this.steps.length;
             const progress = ((this.currentStep + 1) / totalSteps) * 100;
             progressFill.style.width = progress + '%';
         }
@@ -1177,7 +1176,7 @@ this.highlightElement = highlight;
         if (!this.isActive) return;
         
         // Add debugging right at the start
-        console.log('🔴 TUTORIAL CLICK INTERCEPTED:', {
+        console.log('TUTORIAL CLICK INTERCEPTED:', {
             target: event.target,
             targetId: event.target.id,
             targetClass: event.target.className,
@@ -1263,7 +1262,7 @@ if (currentStep.id === 'close-button') {
                 if (timeSinceLastClick < 500) { // 500ms window for double-click
                     this.doubleClickTracker.clicks++;
                     if (this.doubleClickTracker.clicks >= 2) {
-                        console.log('🖱️ Double-click detected!');
+                        console.log('Double-click detected!');
                         // Execute double-click action - repeat sentence
                         if (this.app.audioPlayer) {
                             this.app.audioPlayer.playCurrentSentence();
@@ -1314,7 +1313,7 @@ if (currentStep.id === 'close-button') {
         
         const currentStep = this.steps[this.currentStep];
         if (currentStep && currentStep.action === 'keyboard') {
-            console.log('🎯 TUTORIAL CAPTURE PHASE KEYDOWN:');
+            console.log('TUTORIAL CAPTURE PHASE KEYDOWN:');
             console.log('  Event:', {
                 key: event.key,
                 code: event.code,
@@ -1337,7 +1336,7 @@ if (currentStep.id === 'close-button') {
     handleGlobalKeydown(event) {
     // Log ALL events when tutorial is active for debugging
     if (this.isActive) {
-        console.log('🎯 TUTORIAL ALL KEYDOWN EVENTS:');
+        console.log('TUTORIAL ALL KEYDOWN EVENTS:');
         console.log('  validatingKeyboardStep:', this.validatingKeyboardStep);
         console.log('  event.repeat:', event.repeat);
         console.log('  event.key:', event.key);
@@ -1345,25 +1344,25 @@ if (currentStep.id === 'close-button') {
     }
     
     if (!this.isActive) {
-        console.log('  🚫 Tutorial not active, returning');
+        console.log('  Tutorial not active, returning');
         return;
     }
 
     // Prevent processing events during keyboard step validation
     if (this.validatingKeyboardStep) {
-        console.log('  🚫 Ignoring event during keyboard step validation');
+        console.log('  Ignoring event during keyboard step validation');
         return;
     }
 
-    console.log('  ✅ Passed initial checks, continuing...');
-    console.log('  📊 this.isActive:', this.isActive);
-    console.log('  📊 this.validatingKeyboardStep:', this.validatingKeyboardStep);
+    console.log('  Passed initial checks, continuing...');
+    console.log('  this.isActive:', this.isActive);
+    console.log('  this.validatingKeyboardStep:', this.validatingKeyboardStep);
 
     const currentStep = this.steps[this.currentStep];
     if (currentStep.action !== 'keyboard') return;
 
         
-        console.log('🎯 TUTORIAL KEYDOWN DEBUG:');
+        console.log('TUTORIAL KEYDOWN DEBUG:');
         console.log('  Step:', currentStep.id);
         console.log('  Expected keyCombo:', currentStep.keyCombo);
         console.log('  Event details:', {
@@ -1385,12 +1384,12 @@ if (currentStep.id === 'close-button') {
         if (isMatch) {
             event.preventDefault(); 
             event.stopPropagation();
-            console.log('  ✅ Tutorial: Key combo matched! Executing the actual shortcut action...');
+            console.log('  Tutorial: Key combo matched! Executing the actual shortcut action...');
 
             // Only set validatingKeyboardStep to true for 'keyboard' action steps
             if (currentStep.action === 'keyboard') {
                 this.validatingKeyboardStep = true;
-                console.log('  🔒 Validation flag set to:', this.validatingKeyboardStep); // For debug
+                console.log('  Validation flag set to:', this.validatingKeyboardStep); // For debug
             }
 
             // Special handling for keyboard-speed step: let executeKeyboardShortcutAction handle validation
@@ -1405,9 +1404,9 @@ if (currentStep.id === 'close-button') {
             this.executeKeyboardShortcutAction(currentStep.keyCombo);
 
             // Call onInteraction if it exists (just like mouse clicks do)
-            console.log('🎯 Checking for onInteraction:', !!currentStep.onInteraction);
+            console.log('Checking for onInteraction:', !!currentStep.onInteraction);
             if (currentStep.onInteraction) {
-                console.log('🎯 Calling onInteraction now!');
+                console.log('Calling onInteraction now!');
                 currentStep.onInteraction();
             }
 
@@ -1417,27 +1416,27 @@ if (currentStep.id === 'close-button') {
                     const validationResult = currentStep.validation();
                     console.log('  Validation result:', validationResult);
                     if (validationResult) {
-                        console.log('  ✅ Step completed successfully!');
+                        console.log('  Step completed successfully!');
                         this.stepCompleted();
                     } else {
-                        console.log('  ⏳ Validation failed, trying again in 200ms...');
+                        console.log('  Validation failed, trying again in 200ms...');
                         // Try again with longer delay
                         setTimeout(() => {
                             const retryResult = currentStep.validation();
                             console.log('  Retry validation result:', retryResult);
                             if (retryResult) {
-                                console.log('  ✅ Step completed on retry!');
+                                console.log('  Step completed on retry!');
                                 this.stepCompleted();
                             } else {
-                                console.log('  ❌ Step validation failed even on retry');
-                                console.log('  🔓 Validation flag reset to:', this.validatingKeyboardStep);
+                                console.log('  Step validation failed even on retry');
+                                console.log('  Validation flag reset to:', this.validatingKeyboardStep);
                             }
                         }, 200);
                     }
                 }
             }, 150);
         } else {
-            console.log('  ❌ Key combo did not match');
+            console.log('  Key combo did not match');
         }
     }
 
@@ -1445,7 +1444,7 @@ if (currentStep.id === 'close-button') {
      * Check if key combination matches
      */
     isKeyComboMatch(event, keyCombo) {
-        console.log('  🔍 DETAILED KEY MATCH CHECK:');
+        console.log('  DETAILED KEY MATCH CHECK:');
         console.log('    Expected keyCombo:', keyCombo);
         console.log('    Event modifiers:', {
             shiftKey: event.shiftKey,
@@ -1457,7 +1456,7 @@ if (currentStep.id === 'close-button') {
         console.log('    Platform check - isMac:', navigator.platform.toUpperCase().indexOf('MAC') >= 0);
         
         if (!keyCombo || keyCombo.length === 0) {
-            console.log('    ❌ Invalid keyCombo provided');
+            console.log('    Invalid keyCombo provided');
             return false;
         }
         
@@ -1475,25 +1474,29 @@ if (currentStep.id === 'close-button') {
             const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
             console.log('    Meta key expected, platform is Mac:', isMac);
             if (isMac && !event.metaKey) {
-                console.log('    ❌ Meta key required but not pressed on Mac');
+                console.log('    Meta key required but not pressed on Mac');
                 return false;
             }
             if (!isMac && !event.ctrlKey) {
-                console.log('    ❌ Ctrl key required but not pressed on non-Mac');
+                console.log('    Ctrl key required but not pressed on non-Mac');
                 return false;
             }
-            console.log('    ✅ Meta/Ctrl platform check passed');
+            console.log('    Meta/Ctrl platform check passed');
         }
         
-        // Check all required modifiers and keys
+        // Check all required modifiers and keys. Meta was already validated as
+        // the platform-specific Meta or Ctrl modifier above.
         for (const key of keyCombo) {
             console.log('    Checking key:', key);
+            if (key === 'Meta') {
+                continue;
+            }
             if (key in modifiers) {
                 if (!modifiers[key]) {
-                    console.log('    ❌ Modifier', key, 'required but not pressed');
+                    console.log('    Modifier', key, 'required but not pressed');
                     return false;
                 } else {
-                    console.log('    ✅ Modifier', key, 'is pressed');
+                    console.log('    Modifier', key, 'is pressed');
                 }
             } else {
                 // This is the main key (not a modifier)
@@ -1501,24 +1504,24 @@ if (currentStep.id === 'close-button') {
                 if (key === 'ß') {
                     // For hint shortcut, accept ß, /, or , as alternatives
                     if (event.key !== 'ß' && event.key !== '/' && event.key !== ',') {
-                        console.log('    ❌ Hint key mismatch. Expected: ß, /, or , Got:', event.key);
+                        console.log('    Hint key mismatch. Expected: ß, /, or , Got:', event.key);
                         return false;
                     } else {
-                        console.log('    ✅ Hint key matches:', event.key);
+                        console.log('    Hint key matches:', event.key);
                     }
                 } else {
                     // Regular key matching
                     if (event.key !== key && event.code !== key) {
-                        console.log('    ❌ Main key mismatch. Expected:', key, 'Got:', event.key, '/', event.code);
+                        console.log('    Main key mismatch. Expected:', key, 'Got:', event.key, '/', event.code);
                         return false;
                     } else {
-                        console.log('    ✅ Main key matches:', key);
+                        console.log('    Main key matches:', key);
                     }
                 }
             }
         }
         
-        console.log('    ✅ ALL CHECKS PASSED - Key combo matches!');
+        console.log('    ALL CHECKS PASSED - Key combo matches!');
         return true;
     }
 
@@ -1530,10 +1533,10 @@ if (currentStep.id === 'close-button') {
         
         // Prevent typing validation during keyboard step validation
         if (this.validatingKeyboardStep) {
-            console.log('  🚫 Ignoring input event during keyboard step validation');
+            console.log('  Ignoring input event during keyboard step validation');
             // Clear any unwanted input that might have been generated by shortcuts
             if (event.target && event.target.value) {
-                console.log('  🧹 Clearing unwanted input:', event.target.value);
+                console.log('  Clearing unwanted input:', event.target.value);
                 event.target.value = '';
             }
             return;
@@ -1559,7 +1562,7 @@ if (currentStep.id === 'close-button') {
     stepCompleted() {
         if (this._stepJustCompleted) return; // Prevent double-advance
         this._stepJustCompleted = true;
-        console.log('🎯 Step completed. Current step:', this.currentStep, 'Total steps:', this.steps.length);
+        console.log('Step completed. Current step:', this.currentStep, 'Total steps:', this.steps.length);
 
         const currentStep = this.steps[this.currentStep];
 
@@ -1592,7 +1595,7 @@ setTimeout(() => {
      * Go to next step
      */
     nextStep() {
-        console.log('🔄 nextStep called. Current:', this.currentStep, 'Total:', this.steps.length);
+        console.log('nextStep called. Current:', this.currentStep, 'Total:', this.steps.length);
 
         if (this.currentStep < this.steps.length - 1) {
             this.showStep(this.currentStep + 1);
@@ -1659,9 +1662,8 @@ setTimeout(() => {
             if (this.app.state && typeof this.app.state.reset === 'function') this.app.state.reset();
             if (this.app.statistics && typeof this.app.statistics.reset === 'function') this.app.statistics.reset();
             if (this.app.audioPlayer && typeof this.app.audioPlayer.reset === 'function') this.app.audioPlayer.reset();
-            // Remove all event listeners by re-initializing elements, then re-initialize UI controls
-            if (this.app.uiControls && typeof this.app.uiControls.initializeElements === 'function') this.app.uiControls.initializeElements();
-            if (this.app.uiControls && typeof this.app.uiControls.initialize === 'function') this.app.uiControls.initialize();
+            // UI controls keep their original listeners. Re-initializing here
+            // would attach duplicate handlers after closing or skipping.
             // Load lesson/audio and set up UI for dictation
             if (typeof this.app.loadInitialData === 'function') {
                 this.app.loadInitialData().then(() => {
@@ -1791,34 +1793,34 @@ setTimeout(() => {
      */
     executeKeyboardShortcutAction(keyCombo) {
         if (!this.app || !this.app.audioPlayer) {
-            console.log('  ❌ App or audioPlayer not available for shortcut execution');
+            console.log('  App or audioPlayer not available for shortcut execution');
             return;
         }
 
         // Convert keyCombo to string for comparison
         const comboStr = keyCombo.join('+').toLowerCase();
         
-        console.log('  🎬 Executing keyboard shortcut action for:', comboStr);
+        console.log('  Executing keyboard shortcut action for:', comboStr);
 
         if (comboStr.includes('enter')) {
             // Play/Pause shortcut
-            console.log('  ▶️ Executing play/pause action');
+            console.log('  Executing play/pause action');
             this.app.audioPlayer.togglePlayback();
         } else if (comboStr.includes('arrowright')) {
             // Next sentence shortcut
-            console.log('  ⏭️ Executing next sentence action');
+            console.log('  Executing next sentence action');
             this.app.audioPlayer.goToNextSentence();
         } else if (comboStr.includes('arrowleft')) {
             // Previous sentence shortcut
-            console.log('  ⏮️ Executing previous sentence action');
+            console.log('  Executing previous sentence action');
             this.app.audioPlayer.goToPreviousSentence();
         } else if (comboStr.includes('arrowup')) {
             // Play current sentence shortcut
-            console.log('  🔄 Executing play current sentence action');
+            console.log('  Executing play current sentence action');
             this.app.audioPlayer.playCurrentSentence();
         } else if (comboStr.includes('arrowdown')) {
             // Speed toggle shortcut
-            console.log('  ⚡ Executing speed toggle action');
+            console.log('  Executing speed toggle action');
             // Toggle the speed
             this.app.audioPlayer.toggleSpeed();
             // Patch: Always update speedStatesVisited and validate immediately after speed change
@@ -1839,14 +1841,14 @@ setTimeout(() => {
             }
         } else if (comboStr.includes('ß') || comboStr.includes('/') || comboStr.includes(',')) {
             // Hint toggle shortcut
-            console.log('  💡 Executing hint toggle action');
+            console.log('  Executing hint toggle action');
             // Find and click the hint button
             const hintBtn = document.getElementById('hintBtn');
             if (hintBtn) {
                 hintBtn.click();
             }
         } else {
-            console.log('  ❓ Unknown keyboard shortcut action for:', comboStr);
+            console.log('  Unknown keyboard shortcut action for:', comboStr);
         }
     }
 }
