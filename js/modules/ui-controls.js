@@ -205,11 +205,23 @@ console.groupEnd();
         };
 
         let feedbackHTML = '';
+        const items = comparison.items;
         compWords.forEach((wordChars, wi) => {
             if (wi > 0) {
                 feedbackHTML += this.focusModeActive ? '&nbsp;&nbsp;&nbsp;' : '<span class="char-word-boundary">&nbsp;&nbsp;&nbsp;</span>';
             }
-            const original = originalWords[wi] || '';
+
+            // An extra typed word has no reference word. Render its characters
+            // as they are and give it NO reference slot - it used to consume
+            // the next word's slot, which shifted every following word one
+            // position to the right and hung its punctuation on the wrong word.
+            const meta = items[wi];
+            if (meta && meta.type === 'insert') {
+                for (const it of wordChars) feedbackHTML += emit(it.char, it.status);
+                return;
+            }
+
+            const original = (meta ? originalWords[meta.refIndex] : originalWords[wi]) || '';
             // Leading and trailing punctuation are emitted around the word; anything
             // in between (the dot in "K.O") is emitted where it sits.
             const { lead, core, trail } = splitPunctuation(original);

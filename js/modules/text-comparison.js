@@ -108,13 +108,27 @@ export class TextComparison {
     let wrong = 0;
     let extra = 0;
     let missing = 0;
-    
+
+    // One entry per alignment item, in the same order as the word-boundary
+    // buckets in `chars`. refIndex anchors the bucket to its reference word;
+    // an inserted (extra) word has no reference word, so refIndex is null -
+    // the live feedback renderer must NOT let it consume a reference slot.
+    const items = [];
+    let refIdx = 0;
+
     // Track position in original text
     let origPos = 0;
-    
+
     for (let i = 0; i < alignment.length; i++) {
         const item = alignment[i];
-        
+
+        if (item.type === 'insert') {
+            items.push({ type: item.type, refIndex: null });
+        } else {
+            items.push({ type: item.type, refIndex: refIdx });
+            refIdx++;
+        }
+
         if (i > 0) {
             result.push({ char: ' ', status: 'word-boundary' });
             // Skip space in original
@@ -177,6 +191,7 @@ export class TextComparison {
     
     return {
         chars: result,
+        items,
         stats: { correct, wrong, extra, missing }
     };
 }
