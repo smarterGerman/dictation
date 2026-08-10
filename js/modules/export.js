@@ -79,9 +79,11 @@ export class Exporter {
                 ? Math.round((result.stats.correctWords / result.stats.totalWords) * 100) 
                 : 0;
             
-            // Escape CSV special characters
-            const reference = this.escapeCSVField(result.reference);
-            const userInput = this.escapeCSVField(result.userInput);
+            // Escape CSV special characters. NFC to match what the screens
+            // show - a pasted decomposed umlaut would otherwise export as
+            // different bytes than the rendered result.
+            const reference = this.escapeCSVField(result.reference.normalize('NFC'));
+            const userInput = this.escapeCSVField(result.userInput.normalize('NFC'));
             
             csvContent += `${index + 1},${reference},${userInput},${result.stats.correctWords},${result.stats.wrongWords},${result.stats.totalWords},${sentenceAccuracy}%,${result.time.toFixed(2)}\n`;
         });

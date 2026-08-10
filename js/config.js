@@ -22,23 +22,20 @@ export const CONFIG = {
     speedClasses: ['speed-100', 'speed-75', 'speed-50'],
     
     // Cost settings for text alignment algorithm
-    // Frozen: the DP fill and the backtracker read this table independently
-    // and MUST see identical values, or the backtrack loses the path.
-    // A shared-prefix tie-breaker also applies - it lives next to subCost()
-    // in text-comparison.js. KEEP IN SYNC with the learn-app fork's config.
+    // The PRIMARY tier of the lexicographic alignment objective - plain
+    // integer edit costs, identical to the original tool, so grading counts
+    // never depend on word similarity. Similarity and shared-onset only
+    // break ties between equal-cost alignments; both live next to the DP in
+    // text-comparison.js. Frozen so the table cannot drift mid-session.
+    // KEEP IN SYNC with the learn-app fork's config.
+    // SYNC-BLOCK-START costs
     alignmentCosts: Object.freeze({
         MATCH: 0,
-        // Substitution cost is graded by word similarity:
-        // SUB_BASE + SUB_SCALE * (editDistance / longerWordLength),
-        // so a near-miss ("Töre" for "Tore") costs ~1.5 and a completely
-        // different word costs 3 - the same as the old flat SUB, so
-        // dissimilar words still pair 1:1 instead of splitting into
-        // missing + extra.
-        SUB_BASE: 1,
-        SUB_SCALE: 2,
+        SUB: 3,
         INS: 2,
         DEL: 2
     }),
+    // SYNC-BLOCK-END costs
     
     // Character sets for German text processing
     germanChars: {

@@ -228,11 +228,16 @@ export class Statistics {
      * Generate HTML for a sentence result with word-level feedback
      */
     generateResultHTML(result) {
-        const { reference, userInput, ignoreCaseUsed } = result || {};
+        let { reference, userInput, ignoreCaseUsed } = result || {};
         if (typeof reference !== 'string' || typeof userInput !== 'string') {
             console.error('generateResultHTML: malformed result', result);
             return '<span class="error">Result could not be displayed</span>';
         }
+
+        // Same NFC normalization as compareTexts, so a combining-diaeresis
+        // umlaut the learner typed is not re-graded wrong on this screen.
+        reference = reference.normalize('NFC');
+        userInput = userInput.normalize('NFC');
 
         // Use the case sensitivity setting that was used when this result was recorded
         const ignoreCase = ignoreCaseUsed !== undefined ? ignoreCaseUsed : true;

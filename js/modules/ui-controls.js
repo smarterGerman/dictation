@@ -210,9 +210,11 @@ console.groupEnd();
 
         let feedbackHTML = '';
         const items = comparison.items || [];
-        if (!comparison.items) {
+        if (!comparison.items && !this._itemsMissingLogged) {
             // A cached pre-2026-08 text-comparison.js next to this file:
             // degrade to positional rendering instead of throwing on items[wi].
+            // Logged once, not per keystroke.
+            this._itemsMissingLogged = true;
             console.error('[dictation] live feedback: comparison.items missing, rendering positionally (stale module cache?)');
         }
         compWords.forEach((wordChars, wi) => {

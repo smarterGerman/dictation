@@ -5,6 +5,7 @@ import { CONFIG } from '../config.js';
 import { GermanChars } from './german-chars.js';
 
 
+// SYNC-BLOCK-START engine
 // The ONE set of punctuation this tool ignores. Grading (compareTexts) and both
 // renderers (live feedback in ui-controls.js, results screen in statistics.js)
 // must strip the same set - when they diverge, a word can be graded correct but
@@ -25,8 +26,9 @@ export function splitPunctuation(word) {
 
 // KEEP IN SYNC with the learn-app fork:
 // /opt/learn-app/src/src/lib/dictation/modules/text-comparison.js
-// (levenshtein + subCost + the DP costs in config.js are duplicated there
-// on purpose - the two tools deploy separately and share no package).
+// The alignment engine between the SYNC-BLOCK markers is duplicated there on
+// purpose - the two tools deploy separately and share no package. Check
+// drift with ~/.claude/scripts/sg-dictation-parity.sh.
 //
 // Plain iterative Levenshtein distance between two words. The corpus tops
 // out around 34 chars (Mietschuldenfreiheitsbescheinigung), so the full
@@ -51,29 +53,23 @@ function levenshtein(a, b) {
     return prev[lb];
 }
 
-// Graded substitution cost: identical words are a MATCH (0); otherwise the
-// cost grows with dissimilarity from just above 1 (one-letter typo in a long
-// word) up to SUB_BASE + SUB_SCALE = the old flat SUB cost (completely
-// different word). Because the graded cost never exceeds the old flat cost
-// and DEL/INS are untouched, the DP can only shift pairings TOWARD more
-// similar words - "Töre" pairs with "Tore", never with "höher".
-function subCost(a, b, COST) {
-    if (a === b) return COST.MATCH;
-    const norm = levenshtein(a, b) / Math.max(a.length, b.length);
-    // Heuristic tie-breaker: learners transcribe word onsets most reliably,
-    // so among EQUALLY costly candidates prefer the one sharing the typed
-    // word's first letters ("wegen" pairs with "weil", not "ein"). Two
-    // distinct single-pair costs differ by at least SUB_SCALE/(L*(L-1)) -
-    // ~1.7e-3 even at the corpus maximum of L=34 - so a total discount of
-    // at most 4e-6 cannot flip one. Across whole alignments costs are SUMS
-    // of such fractions, whose gaps have no such floor, so this is a
-    // heuristic there: it may pick between two near-equal alignments, which
-    // is exactly its job.
-    let prefix = 0;
-    const lim = Math.min(a.length, b.length, 4);
-    while (prefix < lim && a[prefix] === b[prefix]) prefix++;
-    return COST.SUB_BASE + COST.SUB_SCALE * norm - 0.000001 * prefix;
+// Normalized dissimilarity of a substituted pair: 0 = identical, 1 = nothing
+// in common. Used ONLY as a tie-breaker between equal-cost alignments, never
+// in the primary cost itself.
+function simNorm(a, b) {
+    return a === b ? 0 : levenshtein(a, b) / Math.max(a.length, b.length);
 }
+
+// Shared word onset (capped at 4 chars): learners transcribe word beginnings
+// most reliably, so among equally dissimilar candidates the one sharing the
+// typed word's first letters wins ("wegen" pairs with "weil", not "ein").
+function sharedPrefix(a, b) {
+    let p = 0;
+    const lim = Math.min(a.length, b.length, 4);
+    while (p < lim && a[p] === b[p]) p++;
+    return p;
+}
+// SYNC-BLOCK-END engine
 
 export class TextComparison {
     /**
@@ -81,9 +77,16 @@ export class TextComparison {
      */
     static compareTexts(reference, userText, options = {}) {
     const { ignoreCase = true } = options;
-    
+
+    // NFC first: some input paths (paste, a few IMEs) deliver an umlaut as
+    // base letter + combining diaeresis, which never string-equals the
+    // precomposed reference even though the learner typed the right word.
+    // Everything downstream - tokens, chars, refTokens - uses these
+    // normalized strings, so per-character indexing stays consistent.
+    reference = reference.normalize('NFC');
+
     // Convert German characters in user text
-    const convertedUserText = GermanChars.convert(userText);
+    const convertedUserText = GermanChars.convert(userText.normalize('NFC'));
     
     const ignorePunctuation = true;
     
@@ -222,100 +225,136 @@ export class TextComparison {
     };
 }
     
+// SYNC-BLOCK-START engine-dp
 /**
-     * Sequence alignment with gaps using dynamic programming
+     * Sequence alignment with gaps, lexicographic objective.
+     *
+     * Three tiers decide each DP cell, compared in order:
+     *   cost - the ORIGINAL integer edit cost (MATCH 0 / SUB 3 / INS 2 /
+     *          DEL 2). This tier alone decides which alignments are optimal,
+     *          exactly as before word similarity existed, so grading counts
+     *          can never change (reference "die dir" vs typed "dir wir"
+     *          keeps its exact match on "dir").
+     *   sim  - total dissimilarity: a substitution adds its normalized char
+     *          distance, an unpaired word (delete/insert) counts 1.0, a
+     *          match 0. Decides BETWEEN equal-cost alignments: "Töre" pairs
+     *          with "Tore" and the gap lands on "höher", never the reverse.
+     *   pref - total shared onset of substituted pairs; more wins the last
+     *          tie ("wegen" pairs with "weil", not "ein").
+     * Remaining full ties resolve diagonal > delete > insert, matching the
+     * old backtracker's preference.
+     *
+     * Backpointers are recorded during the fill; the backtracker follows
+     * them and recomputes nothing. The sim tier compares float sums inside
+     * an epsilon band: two mathematically equal totals can accumulate
+     * ~1e-13 of float dust in different path orders, which an exact ===
+     * would read as a difference and silently skip the prefix tier, while
+     * genuinely different totals differ by at least 1/(40*40) ~ 6e-4.
      */
     static alignSequencesWithGaps(refWords, userWords) {
         const N = refWords.length;
         const M = userWords.length;
-        const dp = Array.from({ length: N + 1 }, () => Array(M + 1).fill(0));
         const COST = CONFIG.alignmentCosts;
-        
-        // Initialize base cases
-        for (let i = 0; i <= N; i++) {
-            dp[i][0] = i * COST.DEL;
-        }
-        for (let j = 0; j <= M; j++) {
-            dp[0][j] = j * COST.INS;
-        }
-        
-        // Fill DP table
-        for (let i = 1; i <= N; i++) {
-            for (let j = 1; j <= M; j++) {
-                const matchCost = dp[i - 1][j - 1] +
-                    subCost(refWords[i - 1], userWords[j - 1], COST);
-                const delCost = dp[i - 1][j] + COST.DEL;
-                const insCost = dp[i][j - 1] + COST.INS;
+        const W = M + 1;
+        const size = (N + 1) * W;
 
-                dp[i][j] = Math.min(matchCost, delCost, insCost);
+        // Sim-tie tolerance: far above accumulated float dust (~1e-13),
+        // far below the smallest genuine sim difference (~6e-4).
+        const SIM_EPS = 1e-9;
+
+        const cost = new Int32Array(size);
+        const sim = new Float64Array(size);
+        const pref = new Int32Array(size);
+        // 1 = diagonal (match/substitute), 2 = up (delete), 3 = left (insert)
+        const dir = new Uint8Array(size);
+
+        for (let i = 1; i <= N; i++) {
+            cost[i * W] = i * COST.DEL;
+            sim[i * W] = i;
+            dir[i * W] = 2;
+        }
+        for (let j = 1; j <= M; j++) {
+            cost[j] = j * COST.INS;
+            sim[j] = j;
+            dir[j] = 3;
+        }
+
+        for (let i = 1; i <= N; i++) {
+            const ref = refWords[i - 1];
+            for (let j = 1; j <= M; j++) {
+                const user = userWords[j - 1];
+                const here = i * W + j;
+                const diag = here - W - 1;
+                const up = here - W;
+                const left = here - 1;
+
+                const eq = ref === user;
+                let bCost = cost[diag] + (eq ? COST.MATCH : COST.SUB);
+                let bSim = sim[diag] + (eq ? 0 : simNorm(ref, user));
+                let bPref = pref[diag] + (eq ? 0 : sharedPrefix(ref, user));
+                let bDir = 1;
+
+                const dCost = cost[up] + COST.DEL;
+                const dSim = sim[up] + 1;
+                if (dCost < bCost || (dCost === bCost && (dSim < bSim - SIM_EPS ||
+                        (dSim <= bSim + SIM_EPS && pref[up] > bPref)))) {
+                    bCost = dCost; bSim = dSim; bPref = pref[up]; bDir = 2;
+                }
+
+                const iCost = cost[left] + COST.INS;
+                const iSim = sim[left] + 1;
+                if (iCost < bCost || (iCost === bCost && (iSim < bSim - SIM_EPS ||
+                        (iSim <= bSim + SIM_EPS && pref[left] > bPref)))) {
+                    bCost = iCost; bSim = iSim; bPref = pref[left]; bDir = 3;
+                }
+
+                cost[here] = bCost;
+                sim[here] = bSim;
+                pref[here] = bPref;
+                dir[here] = bDir;
             }
         }
 
-        // Backtrack to find alignment
-        return this.backtrackAlignment(dp, refWords, userWords);
+        return this.backtrackAlignment(dir, W, refWords, userWords);
     }
-    
+
     /**
-     * Backtrack through DP table to find optimal alignment
+     * Walk the recorded backpointers from (N, M) to (0, 0).
      */
-    static backtrackAlignment(dp, refWords, userWords) {
+    static backtrackAlignment(dir, W, refWords, userWords) {
         let i = refWords.length;
         let j = userWords.length;
         const alignment = [];
-        const COST = CONFIG.alignmentCosts;
-        
+
         while (i > 0 || j > 0) {
-            const current = dp[i][j];
-            
-            // Check for match/substitute. The recomputed sum is bit-identical
-            // to the fill step (same pure function, same inputs), so the
-            // float comparison is exact.
-            if (i > 0 && j > 0 &&
-                current === dp[i - 1][j - 1] +
-                           subCost(refWords[i - 1], userWords[j - 1], COST)) {
+            const d = dir[i * W + j];
+            if (d === 1) {
                 alignment.unshift({
                     type: refWords[i - 1] === userWords[j - 1] ? 'match' : 'substitute',
                     refWord: refWords[i - 1],
                     userWord: userWords[j - 1]
                 });
                 i--; j--;
-                continue;
-            }
-            
-            // Check for deletion
-            if (i > 0 && current === dp[i - 1][j] + COST.DEL) {
-                alignment.unshift({ 
-                    type: 'delete', 
-                    refWord: refWords[i - 1], 
-                    userWord: null 
-                });
+            } else if (d === 2) {
+                alignment.unshift({ type: 'delete', refWord: refWords[i - 1], userWord: null });
                 i--;
-                continue;
-            }
-            
-            // Insertion - but only if a user word is actually left. Reaching
-            // the fallthrough below means the fill step and this backtracker
-            // disagree about the cost function (see the bit-identity note
-            // above); a bare else here once spun j to -1, -2, ... forever,
-            // freezing the tab with no error.
-            if (j > 0 && current === dp[i][j - 1] + COST.INS) {
-                alignment.unshift({
-                    type: 'insert',
-                    refWord: null,
-                    userWord: userWords[j - 1]
-                });
+            } else if (d === 3) {
+                alignment.unshift({ type: 'insert', refWord: null, userWord: userWords[j - 1] });
                 j--;
-                continue;
+            } else {
+                // Unreachable while the fill above stamps every cell; kept so
+                // a future bug degrades to a complete (if blunt) alignment
+                // instead of freezing the tab in this loop.
+                console.error('[dictation] corrupt backpointer', { i, j });
+                while (j > 0) alignment.unshift({ type: 'insert', refWord: null, userWord: userWords[--j] });
+                while (i > 0) alignment.unshift({ type: 'delete', refWord: refWords[--i], userWord: null });
+                break;
             }
-
-            console.error('[dictation] backtrack lost the DP path', { i, j, current });
-            while (j > 0) alignment.unshift({ type: 'insert', refWord: null, userWord: userWords[--j] });
-            while (i > 0) alignment.unshift({ type: 'delete', refWord: refWords[--i], userWord: null });
-            break;
         }
 
         return alignment;
     }
+// SYNC-BLOCK-END engine-dp
     
 /**
      * Calculate word-level statistics
