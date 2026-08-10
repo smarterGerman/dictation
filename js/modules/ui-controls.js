@@ -181,8 +181,12 @@ console.groupEnd();
         // learner must always read the word exactly as it is written, even though
         // the comparison itself still ignores punctuation. PUNCT_RE comes from
         // text-comparison.js so display and grading share one set.
-        const originalText = this.referenceText;
-        const originalWords = originalText.split(/\s+/).filter(w => w.length > 0);
+        // Anchor tokens come from the comparison itself (filtered by the same
+        // rule as the aligned words, so refIndex k always means token k).
+        // The raw-split fallback only serves a stale cached text-comparison.js
+        // from before these fields existed.
+        const originalWords = comparison.refTokens
+            || this.referenceText.split(/\s+/).filter(w => w.length > 0);
 
         // Split the comparison stream into per-word buckets.
         const compWords = [];
@@ -205,7 +209,12 @@ console.groupEnd();
         };
 
         let feedbackHTML = '';
-        const items = comparison.items;
+        const items = comparison.items || [];
+        if (!comparison.items) {
+            // A cached pre-2026-08 text-comparison.js next to this file:
+            // degrade to positional rendering instead of throwing on items[wi].
+            console.error('[dictation] live feedback: comparison.items missing, rendering positionally (stale module cache?)');
+        }
         compWords.forEach((wordChars, wi) => {
             if (wi > 0) {
                 feedbackHTML += this.focusModeActive ? '&nbsp;&nbsp;&nbsp;' : '<span class="char-word-boundary">&nbsp;&nbsp;&nbsp;</span>';

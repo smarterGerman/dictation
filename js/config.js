@@ -22,7 +22,11 @@ export const CONFIG = {
     speedClasses: ['speed-100', 'speed-75', 'speed-50'],
     
     // Cost settings for text alignment algorithm
-    alignmentCosts: {
+    // Frozen: the DP fill and the backtracker read this table independently
+    // and MUST see identical values, or the backtrack loses the path.
+    // A shared-prefix tie-breaker also applies - it lives next to subCost()
+    // in text-comparison.js. KEEP IN SYNC with the learn-app fork's config.
+    alignmentCosts: Object.freeze({
         MATCH: 0,
         // Substitution cost is graded by word similarity:
         // SUB_BASE + SUB_SCALE * (editDistance / longerWordLength),
@@ -34,7 +38,7 @@ export const CONFIG = {
         SUB_SCALE: 2,
         INS: 2,
         DEL: 2
-    },
+    }),
     
     // Character sets for German text processing
     germanChars: {

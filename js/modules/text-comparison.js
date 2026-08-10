@@ -23,8 +23,14 @@ export function splitPunctuation(word) {
     return { lead: word.slice(0, a), core: word.slice(a, b), trail: word.slice(b) };
 }
 
-// Plain iterative Levenshtein distance between two words. Words are short
-// (<= ~20 chars), so the full O(a*b) table is cheap even per keystroke.
+// KEEP IN SYNC with the learn-app fork:
+// /opt/learn-app/src/src/lib/dictation/modules/text-comparison.js
+// (levenshtein + subCost + the DP costs in config.js are duplicated there
+// on purpose - the two tools deploy separately and share no package).
+//
+// Plain iterative Levenshtein distance between two words. The corpus tops
+// out around 34 chars (Mietschuldenfreiheitsbescheinigung), so the full
+// O(a*b) table is cheap even per keystroke.
 function levenshtein(a, b) {
     if (a === b) return 0;
     const la = a.length, lb = b.length;
@@ -54,16 +60,19 @@ function levenshtein(a, b) {
 function subCost(a, b, COST) {
     if (a === b) return COST.MATCH;
     const norm = levenshtein(a, b) / Math.max(a.length, b.length);
-    // Tie-breaker only: learners transcribe word onsets most reliably, so
-    // among EQUALLY distant candidates prefer the one sharing the typed
-    // word's first letters ("wegen" pairs with "weil", not "ein"). The
-    // discount is capped at 0.002, below the smallest possible gap between
-    // two distinct normalized distances (2/(29*30) ~ 0.0023 for words up to
-    // 30 chars), so it can never override a genuine similarity difference.
+    // Heuristic tie-breaker: learners transcribe word onsets most reliably,
+    // so among EQUALLY costly candidates prefer the one sharing the typed
+    // word's first letters ("wegen" pairs with "weil", not "ein"). Two
+    // distinct single-pair costs differ by at least SUB_SCALE/(L*(L-1)) -
+    // ~1.7e-3 even at the corpus maximum of L=34 - so a total discount of
+    // at most 4e-6 cannot flip one. Across whole alignments costs are SUMS
+    // of such fractions, whose gaps have no such floor, so this is a
+    // heuristic there: it may pick between two near-equal alignments, which
+    // is exactly its job.
     let prefix = 0;
     const lim = Math.min(a.length, b.length, 4);
     while (prefix < lim && a[prefix] === b[prefix]) prefix++;
-    return COST.SUB_BASE + COST.SUB_SCALE * norm - 0.0005 * prefix;
+    return COST.SUB_BASE + COST.SUB_SCALE * norm - 0.000001 * prefix;
 }
 
 export class TextComparison {
@@ -124,9 +133,15 @@ export class TextComparison {
 
         if (item.type === 'insert') {
             items.push({ type: item.type, refIndex: null });
-        } else {
+        } else if (item.type === 'match' || item.type === 'substitute' || item.type === 'delete') {
             items.push({ type: item.type, refIndex: refIdx });
             refIdx++;
+        } else {
+            // A new alignment type MUST decide whether it consumes a
+            // reference word; guessing here would silently shift every
+            // later word's anchor.
+            console.error('[dictation] unknown alignment type, refIndex bookkeeping is now wrong:', item.type);
+            items.push({ type: item.type, refIndex: null });
         }
 
         if (i > 0) {
@@ -189,9 +204,20 @@ export class TextComparison {
         }
     }
     
+    // Verbatim reference tokens, filtered by the SAME rule that forms the
+    // aligned words (a token whose punctuation-stripped core is empty - a
+    // free-standing quote or ellipsis - vanishes from both), so token k here
+    // IS the raw form of aligned word k. The live renderer must anchor
+    // refIndex against THESE tokens, never against its own re-tokenization,
+    // or one punctuation-only token in a lesson text would silently shift
+    // every later word's anchor.
+    const refTokens = reference.split(/\s+/)
+        .filter(t => t.replace(PUNCT_RE_G, '').length > 0);
+
     return {
         chars: result,
         items,
+        refTokens,
         stats: { correct, wrong, extra, missing }
     };
 }
@@ -267,15 +293,27 @@ export class TextComparison {
                 continue;
             }
             
-            // Must be insertion
-            alignment.unshift({ 
-                type: 'insert', 
-                refWord: null, 
-                userWord: userWords[j - 1] 
-            });
-            j--;
+            // Insertion - but only if a user word is actually left. Reaching
+            // the fallthrough below means the fill step and this backtracker
+            // disagree about the cost function (see the bit-identity note
+            // above); a bare else here once spun j to -1, -2, ... forever,
+            // freezing the tab with no error.
+            if (j > 0 && current === dp[i][j - 1] + COST.INS) {
+                alignment.unshift({
+                    type: 'insert',
+                    refWord: null,
+                    userWord: userWords[j - 1]
+                });
+                j--;
+                continue;
+            }
+
+            console.error('[dictation] backtrack lost the DP path', { i, j, current });
+            while (j > 0) alignment.unshift({ type: 'insert', refWord: null, userWord: userWords[--j] });
+            while (i > 0) alignment.unshift({ type: 'delete', refWord: refWords[--i], userWord: null });
+            break;
         }
-        
+
         return alignment;
     }
     
