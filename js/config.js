@@ -24,7 +24,14 @@ export const CONFIG = {
     // Cost settings for text alignment algorithm
     alignmentCosts: {
         MATCH: 0,
-        SUB: 3,
+        // Substitution cost is graded by word similarity:
+        // SUB_BASE + SUB_SCALE * (editDistance / longerWordLength),
+        // so a near-miss ("Töre" for "Tore") costs ~1.5 and a completely
+        // different word costs 3 - the same as the old flat SUB, so
+        // dissimilar words still pair 1:1 instead of splitting into
+        // missing + extra.
+        SUB_BASE: 1,
+        SUB_SCALE: 2,
         INS: 2,
         DEL: 2
     },

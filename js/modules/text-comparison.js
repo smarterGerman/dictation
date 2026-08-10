@@ -23,6 +23,49 @@ export function splitPunctuation(word) {
     return { lead: word.slice(0, a), core: word.slice(a, b), trail: word.slice(b) };
 }
 
+// Plain iterative Levenshtein distance between two words. Words are short
+// (<= ~20 chars), so the full O(a*b) table is cheap even per keystroke.
+function levenshtein(a, b) {
+    if (a === b) return 0;
+    const la = a.length, lb = b.length;
+    if (la === 0) return lb;
+    if (lb === 0) return la;
+    let prev = new Array(lb + 1);
+    let curr = new Array(lb + 1);
+    for (let j = 0; j <= lb; j++) prev[j] = j;
+    for (let i = 1; i <= la; i++) {
+        curr[0] = i;
+        const ca = a.charCodeAt(i - 1);
+        for (let j = 1; j <= lb; j++) {
+            const cost = ca === b.charCodeAt(j - 1) ? 0 : 1;
+            curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+        }
+        [prev, curr] = [curr, prev];
+    }
+    return prev[lb];
+}
+
+// Graded substitution cost: identical words are a MATCH (0); otherwise the
+// cost grows with dissimilarity from just above 1 (one-letter typo in a long
+// word) up to SUB_BASE + SUB_SCALE = the old flat SUB cost (completely
+// different word). Because the graded cost never exceeds the old flat cost
+// and DEL/INS are untouched, the DP can only shift pairings TOWARD more
+// similar words - "Töre" pairs with "Tore", never with "höher".
+function subCost(a, b, COST) {
+    if (a === b) return COST.MATCH;
+    const norm = levenshtein(a, b) / Math.max(a.length, b.length);
+    // Tie-breaker only: learners transcribe word onsets most reliably, so
+    // among EQUALLY distant candidates prefer the one sharing the typed
+    // word's first letters ("wegen" pairs with "weil", not "ein"). The
+    // discount is capped at 0.002, below the smallest possible gap between
+    // two distinct normalized distances (2/(29*30) ~ 0.0023 for words up to
+    // 30 chars), so it can never override a genuine similarity difference.
+    let prefix = 0;
+    const lim = Math.min(a.length, b.length, 4);
+    while (prefix < lim && a[prefix] === b[prefix]) prefix++;
+    return COST.SUB_BASE + COST.SUB_SCALE * norm - 0.0005 * prefix;
+}
+
 export class TextComparison {
     /**
      * Compare user input with reference text
@@ -159,14 +202,14 @@ export class TextComparison {
         for (let i = 1; i <= N; i++) {
             for (let j = 1; j <= M; j++) {
                 const matchCost = dp[i - 1][j - 1] +
-                    (refWords[i - 1] === userWords[j - 1] ? COST.MATCH : COST.SUB);
+                    subCost(refWords[i - 1], userWords[j - 1], COST);
                 const delCost = dp[i - 1][j] + COST.DEL;
                 const insCost = dp[i][j - 1] + COST.INS;
-                
+
                 dp[i][j] = Math.min(matchCost, delCost, insCost);
             }
         }
-        
+
         // Backtrack to find alignment
         return this.backtrackAlignment(dp, refWords, userWords);
     }
@@ -183,10 +226,12 @@ export class TextComparison {
         while (i > 0 || j > 0) {
             const current = dp[i][j];
             
-            // Check for match/substitute
+            // Check for match/substitute. The recomputed sum is bit-identical
+            // to the fill step (same pure function, same inputs), so the
+            // float comparison is exact.
             if (i > 0 && j > 0 &&
                 current === dp[i - 1][j - 1] +
-                           (refWords[i - 1] === userWords[j - 1] ? COST.MATCH : COST.SUB)) {
+                           subCost(refWords[i - 1], userWords[j - 1], COST)) {
                 alignment.unshift({
                     type: refWords[i - 1] === userWords[j - 1] ? 'match' : 'substitute',
                     refWord: refWords[i - 1],
