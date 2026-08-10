@@ -83,6 +83,99 @@ function sharedPrefix(a, b) {
     while (p < lim && a[p] === b[p]) p++;
     return p;
 }
+
+// --- Number-word equivalence -------------------------------------------
+// Lesson texts write numbers as digits ("8 Cent", "halb 7", "Jahr 1995")
+// while the audio speaks words, so a learner typing "acht" was marked
+// wrong. A digit token and a German number word with the same value now
+// grade as a MATCH. The parser is consulted ONLY when exactly one side is
+// a pure digit token, so ordinary words can never accidentally equal each
+// other through it.
+
+const NUM_ONES = { ein: 1, eins: 1, eine: 1, zwei: 2, drei: 3, vier: 4, fünf: 5, sechs: 6, sieben: 7, acht: 8, neun: 9 };
+const NUM_TEENS = { zehn: 10, elf: 11, zwölf: 12, dreizehn: 13, vierzehn: 14, fünfzehn: 15, sechzehn: 16, siebzehn: 17, achtzehn: 18, neunzehn: 19 };
+const NUM_TENS = { zwanzig: 20, dreißig: 30, dreissig: 30, vierzig: 40, fünfzig: 50, sechzig: 60, siebzig: 70, achtzig: 80, neunzig: 90 };
+// Ordinal stems ("der 9. Klasse" is spoken "neunten"): stem -> value.
+const NUM_ORDINAL_STEMS = { erst: 1, zweit: 2, dritt: 3, viert: 4, fünft: 5, sechst: 6, siebt: 7, acht: 8, neunt: 9, zehnt: 10, elft: 11, zwölft: 12 };
+const NUM_ORDINAL_ENDING = /(e|en|er|es|em)$/;
+
+function parseBelowThousand(s) {
+    let total = 0;
+    const h = s.indexOf('hundert');
+    if (h >= 0) {
+        const pre = s.slice(0, h);
+        const mult = pre === '' ? 1 : (NUM_ONES[pre] ?? NUM_TEENS[pre]);
+        if (mult === undefined) return null;
+        total = mult * 100;
+        s = s.slice(h + 7);
+        if (s === '') return total;
+        if (s.startsWith('und')) s = s.slice(3);
+    }
+    if (NUM_TEENS[s] !== undefined) return total + NUM_TEENS[s];
+    if (NUM_TENS[s] !== undefined) return total + NUM_TENS[s];
+    if (NUM_ONES[s] !== undefined) return total + NUM_ONES[s];
+    const u = s.indexOf('und');
+    if (u > 0) {
+        const one = NUM_ONES[s.slice(0, u)];
+        const ten = NUM_TENS[s.slice(u + 3)];
+        if (one !== undefined && ten !== undefined) return total + one + ten;
+    }
+    return null;
+}
+
+// "zweitausendsechs" -> 2006, "zweihundertfünfzigtausend" -> 250000,
+// "neunzehnhundertfünfundneunzig" -> 1995, "hundertzehn" -> 110.
+function parseGermanNumberWord(w) {
+    if (w === 'null') return 0;
+    const t = w.indexOf('tausend');
+    if (t >= 0) {
+        const pre = w.slice(0, t);
+        const mult = pre === '' ? 1 : parseBelowThousand(pre);
+        if (mult === null) return null;
+        let rest = w.slice(t + 7);
+        if (rest.startsWith('und')) rest = rest.slice(3);
+        const r = rest === '' ? 0 : parseBelowThousand(rest);
+        if (r === null) return null;
+        return mult * 1000 + r;
+    }
+    const card = parseBelowThousand(w);
+    if (card !== null) return card;
+    // Ordinal: stem + declension ending ("neunte", "neunten", ...)
+    const m = w.match(NUM_ORDINAL_ENDING);
+    if (m) {
+        const stem = w.slice(0, w.length - m[1].length);
+        if (NUM_ORDINAL_STEMS[stem] !== undefined) return NUM_ORDINAL_STEMS[stem];
+        // "zwanzigste" and up: cardinal stem + st
+        if (stem.endsWith('st')) {
+            const c = parseBelowThousand(stem.slice(0, -2));
+            if (c !== null && c >= 19) return c;
+        }
+    }
+    return null;
+}
+
+// One token pair, digits on exactly one side: "8" ~ "acht"? Hyphenated
+// compounds compare part-wise: "1-zimmer-wohnung" ~ "ein-zimmer-wohnung".
+function numberEquivalent(a, b) {
+    const pa = a.split('-');
+    const pb = b.split('-');
+    if (pa.length !== pb.length) return false;
+    if (pa.length > 1) {
+        return pa.every((p, k) => p === pb[k] || numberEquivalent(p, pb[k]));
+    }
+    const da = /^\d+$/.test(a);
+    const db = /^\d+$/.test(b);
+    if (da === db) return false;
+    const digits = parseInt(da ? a : b, 10);
+    const word = parseGermanNumberWord((da ? b : a).toLowerCase());
+    return word !== null && word === digits;
+}
+
+// The ONE word-equality test for the alignment: literal equality or a
+// digit/number-word pair of the same value.
+function wordsMatch(a, b) {
+    return a === b || numberEquivalent(a, b);
+}
 // SYNC-BLOCK-END engine
 
 export class TextComparison {
@@ -301,7 +394,7 @@ export class TextComparison {
                 const up = here - W;
                 const left = here - 1;
 
-                const eq = ref === user;
+                const eq = wordsMatch(ref, user);
                 let bCost = cost[diag] + (eq ? COST.MATCH : COST.SUB);
                 let bSim = sim[diag] + (eq ? 0 : simNorm(ref, user));
                 let bPref = pref[diag] + (eq ? 0 : sharedPrefix(ref, user));
@@ -343,7 +436,7 @@ export class TextComparison {
             const d = dir[i * W + j];
             if (d === 1) {
                 alignment.unshift({
-                    type: refWords[i - 1] === userWords[j - 1] ? 'match' : 'substitute',
+                    type: wordsMatch(refWords[i - 1], userWords[j - 1]) ? 'match' : 'substitute',
                     refWord: refWords[i - 1],
                     userWord: userWords[j - 1]
                 });
