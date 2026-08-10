@@ -3,7 +3,7 @@
  */
 import { TimeHelpers } from '../utils/time-helpers.js';
 import { DOMHelpers, escapeHtml } from '../utils/dom-helpers.js';
-import { TextComparison, PUNCT_RE_G, splitPunctuation } from './text-comparison.js';
+import { TextComparison, PUNCT_RE_G, splitPunctuation, normalizeText } from './text-comparison.js';
 
 export class Statistics {
     constructor() {
@@ -234,10 +234,11 @@ export class Statistics {
             return '<span class="error">Result could not be displayed</span>';
         }
 
-        // Same NFC normalization as compareTexts, so a combining-diaeresis
-        // umlaut the learner typed is not re-graded wrong on this screen.
-        reference = reference.normalize('NFC');
-        userInput = userInput.normalize('NFC');
+        // Same normalization as compareTexts (NFC + Turkish-i folding), so a
+        // combining-diaeresis umlaut or a Turkish-keyboard İ the learner
+        // typed is not re-graded wrong on this screen.
+        reference = normalizeText(reference);
+        userInput = normalizeText(userInput);
 
         // Use the case sensitivity setting that was used when this result was recorded
         const ignoreCase = ignoreCaseUsed !== undefined ? ignoreCaseUsed : true;

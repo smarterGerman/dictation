@@ -14,6 +14,20 @@ import { GermanChars } from './german-chars.js';
 export const PUNCT_RE = /[.,!?;:""''()„""''‚'«»\u0022\u0027\u2018\u2019\u201A\u201B\u201C\u201D\u201E\u201F\u2039\u203A\u00AB\u00BB\u275B\u275C\u275D\u275E\u300C\u300D\u300E\u300F]/;
 export const PUNCT_RE_G = new RegExp(PUNCT_RE.source, 'g');
 
+// The ONE text normalization for grading and display. NFC first (some input
+// paths deliver an umlaut as base letter + combining diaeresis), then fold
+// the Turkish i glyphs: a Turkish keyboard's shift+i produces İ (U+0130),
+// whose Unicode lowercase is TWO code units (i + combining dot) - that
+// length change desynced the per-character coloring for the whole word.
+// German text never contains İ, ı, or a dotted i with an extra dot, so the
+// folds are lossless here.
+export function normalizeText(s) {
+    return s.normalize('NFC')
+        .replace(/İ/g, 'I')     // İ dotted capital -> I
+        .replace(/ı/g, 'i')     // ı dotless small  -> i
+        .replace(/i\u0307/g, 'i'); // i + stray combining dot -> i
+}
+
 // Split a word into leading punctuation, core, and trailing punctuation, so a
 // renderer can show the word verbatim while treating only the core as letters.
 export function splitPunctuation(word) {
@@ -78,15 +92,14 @@ export class TextComparison {
     static compareTexts(reference, userText, options = {}) {
     const { ignoreCase = true } = options;
 
-    // NFC first: some input paths (paste, a few IMEs) deliver an umlaut as
-    // base letter + combining diaeresis, which never string-equals the
-    // precomposed reference even though the learner typed the right word.
-    // Everything downstream - tokens, chars, refTokens - uses these
-    // normalized strings, so per-character indexing stays consistent.
-    reference = reference.normalize('NFC');
+    // One normalization for both sides (NFC + Turkish-i folding, see
+    // normalizeText). Everything downstream - tokens, chars, refTokens -
+    // uses these normalized strings, so per-character indexing stays
+    // consistent.
+    reference = normalizeText(reference);
 
     // Convert German characters in user text
-    const convertedUserText = GermanChars.convert(userText.normalize('NFC'));
+    const convertedUserText = GermanChars.convert(normalizeText(userText));
     
     const ignorePunctuation = true;
     

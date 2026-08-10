@@ -2,6 +2,7 @@
  * CSV Export functionality
  */
 import { TimeHelpers } from '../utils/time-helpers.js';
+import { normalizeText } from './text-comparison.js';
 
 export class Exporter {
     constructor() {
@@ -79,11 +80,11 @@ export class Exporter {
                 ? Math.round((result.stats.correctWords / result.stats.totalWords) * 100) 
                 : 0;
             
-            // Escape CSV special characters. NFC to match what the screens
-            // show - a pasted decomposed umlaut would otherwise export as
-            // different bytes than the rendered result.
-            const reference = this.escapeCSVField(result.reference.normalize('NFC'));
-            const userInput = this.escapeCSVField(result.userInput.normalize('NFC'));
+            // Escape CSV special characters. Same normalization as the
+            // screens (NFC + Turkish-i folding) so the export matches what
+            // the learner saw rendered.
+            const reference = this.escapeCSVField(normalizeText(result.reference));
+            const userInput = this.escapeCSVField(normalizeText(result.userInput));
             
             csvContent += `${index + 1},${reference},${userInput},${result.stats.correctWords},${result.stats.wrongWords},${result.stats.totalWords},${sentenceAccuracy}%,${result.time.toFixed(2)}\n`;
         });
