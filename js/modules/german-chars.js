@@ -3,17 +3,8 @@
  */
 import { CONFIG } from '../config.js';
 
-const EXCEPTIONS = ['tue'];
-
 export function convert(input) {
-    console.debug('[EXCEPTION CHECK]', input, EXCEPTIONS.includes(input));
-    // If the input matches an exception, return it unchanged
-    if (EXCEPTIONS.includes(input)) {
-        console.debug('[EXCEPTION MATCHED]', input);
-        return input;
-    }
-    // Example replacement:
-    return input.replace(/ue/g, 'ü');
+    return GermanChars.convert(input);
 }
 
 export class GermanChars {
@@ -123,13 +114,10 @@ export class GermanChars {
      */
     static getCharacterMappings() {
         return [
-            { input: 'ae', output: 'ä', description: 'ae → ä' },
-            { input: 'oe', output: 'ö', description: 'oe → ö' },
-            { input: 'ue', output: 'ü', description: 'ue → ü' },
-            { input: 'Ae', output: 'Ä', description: 'Ae → Ä' },
-            { input: 'Oe', output: 'Ö', description: 'Oe → Ö' },
-            { input: 'Ue', output: 'Ü', description: 'Ue → Ü' },
-            { input: 'B (after vowel)', output: 'ß', description: 'vowel + B → vowel + ß' }
+            { input: 'a/', output: 'ä', description: 'a/ → ä' },
+            { input: 'o/', output: 'ö', description: 'o/ → ö' },
+            { input: 'u/', output: 'ü', description: 'u/ → ü' },
+            { input: 's/', output: 'ß', description: 's/ → ß' }
         ];
     }
 }

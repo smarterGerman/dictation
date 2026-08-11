@@ -18,6 +18,7 @@ export class UIControls {
         this.focusModeBtn = null;
         this.hintBtn = null;
         this.endDictationBtn = null;
+        this.germanCharacterButtons = [];
         
         // State
         this.ignoreCaseActive = true;
@@ -55,6 +56,7 @@ export class UIControls {
         this.focusModeBtn = DOMHelpers.getElementById('focusModeBtn');
         this.hintBtn = DOMHelpers.getElementById('hintBtn');
         this.endDictationBtn = DOMHelpers.getElementById('endDictationBtn');
+        this.germanCharacterButtons = Array.from(document.querySelectorAll('.german-character-btn'));
         
         // Set initial state
         if (this.userInput) {
@@ -105,6 +107,28 @@ export class UIControls {
                 if (this.onEndDictation) this.onEndDictation();
             });
         }
+
+        this.germanCharacterButtons.forEach((button) => {
+            DOMHelpers.addEventListener(button, 'click', () => {
+                this.insertGermanCharacter(button.dataset.character || '');
+            });
+        });
+    }
+
+    /**
+     * Insert a German character at the current caret position
+     */
+    insertGermanCharacter(character) {
+        if (!this.userInput || !character) return;
+
+        const start = this.userInput.selectionStart ?? this.userInput.value.length;
+        const end = this.userInput.selectionEnd ?? start;
+        const scrollTop = this.userInput.scrollTop;
+
+        this.userInput.setRangeText(character, start, end, 'end');
+        this.userInput.focus({ preventScroll: true });
+        this.userInput.scrollTop = scrollTop;
+        this.userInput.dispatchEvent(new Event('input', { bubbles: true }));
     }
     
     /**
@@ -112,15 +136,13 @@ export class UIControls {
      */
     handleUserInput(e) {
         this.hideHint();
-        
-        // Notify that typing has started
-        if (this.onInputChange) {
-            this.onInputChange(e.target.value);
-        }
-        
+
         // Convert German characters
-        const cursorPos = e.target.selectionStart;
+        const cursorStart = e.target.selectionStart;
+        const cursorEnd = e.target.selectionEnd;
         const convertedText = GermanChars.convert(e.target.value);
+        const convertedCursorStart = GermanChars.convert(e.target.value.slice(0, cursorStart)).length;
+        const convertedCursorEnd = GermanChars.convert(e.target.value.slice(0, cursorEnd)).length;
        
         // BEGIN PRECISE DEBUGGING
         let debugInput = e.target.value;
@@ -143,7 +165,12 @@ console.groupEnd();
         console.debug(`[GERMAN CHAR DEBUG] Input: "${e.target.value}" → Converted: "${convertedText}"`);
         if (convertedText !== e.target.value) {
             e.target.value = convertedText;
-            e.target.setSelectionRange(cursorPos, cursorPos);
+            e.target.setSelectionRange(convertedCursorStart, convertedCursorEnd);
+        }
+
+        // Notify with the value that remains in the writing field.
+        if (this.onInputChange) {
+            this.onInputChange(convertedText);
         }
         
         // Update live feedback

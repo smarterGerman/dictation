@@ -1,26 +1,29 @@
 // filepath: /Users/denkmuskel/dictation/regex_test.js
 const words = [
-    'zurueck',   // should become 'zurück'
-    'bauer',     // should stay 'bauer'
-    'gruen',     // should become 'grün'
-    'tuer',      // should become 'tür'
-    'queue',     // should stay 'queue'
-    'fUehren',   // should become 'führen'
-    'Ueber',     // should become 'Über'
-    'AUER',      // should stay 'AUER'
-    'ZURUECK',   // should become 'ZURÜCK'
+    ['zuerst', 'zuerst'],
+    ['bauer', 'bauer'],
+    ['gruen', 'gruen'],
+    ['tuer', 'tuer'],
+    ['a/', 'ä'],
+    ['o/', 'ö'],
+    ['u/', 'ü'],
+    ['s/', 'ß']
 ];
 
 const patterns = [
-    { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])ue/g, replacement: 'ü' },
-    { pattern: /(?<![aeiouäöüAEIOUÄÖÜ])Ue/g, replacement: 'Ü' },
-    { pattern: /(?<![AEIOUÄÖÜ])UE/g, replacement: 'Ü' },
+    { pattern: /a\//g, replacement: 'ä' },
+    { pattern: /o\//g, replacement: 'ö' },
+    { pattern: /u\//g, replacement: 'ü' },
+    { pattern: /s\//g, replacement: 'ß' }
 ];
 
-words.forEach(word => {
+words.forEach(([word, expected]) => {
     let result = word;
     patterns.forEach(({ pattern, replacement }) => {
         result = result.replace(pattern, replacement);
     });
     console.log(`${word} -> ${result}`);
+    if (result !== expected) {
+        throw new Error(`Expected ${word} to become ${expected}, got ${result}`);
+    }
 });

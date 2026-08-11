@@ -354,6 +354,13 @@ body {
     padding: 0; 
 }
 
+.writing-field {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+}
+
 .input-field {
     width:100%; 
     min-height:75px; 
@@ -384,6 +391,46 @@ body {
     transition: color 0.3s ease;
     display: flex;
     align-items: center;
+}
+
+.german-character-bar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+}
+
+.german-character-btn {
+    min-width: 0;
+    height: 46px;
+    padding: 0;
+    background: #fff;
+    color: #333;
+    border: 2px solid #F04E23;
+    border-radius: 12px;
+    font: inherit;
+    font-size: 21px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+@media (hover: hover) {
+    .german-character-btn:hover {
+        background: #F04E23;
+        color: #fff;
+    }
+}
+
+.german-character-btn:focus-visible {
+    outline: 3px solid #333;
+    outline-offset: 3px;
+}
+
+.german-character-btn:active {
+    background: #333;
+    color: #fff;
 }
 
 .live-feedback {
@@ -779,6 +826,15 @@ body {
     .live-feedback {
         font-size: 18px;
         min-height: 44px;
+    }
+
+    .german-character-bar {
+        gap: 8px;
+    }
+
+    .german-character-btn {
+        height: 44px;
+        font-size: 20px;
     }
 
     .player-pill {

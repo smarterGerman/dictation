@@ -52,8 +52,8 @@ All original features are preserved and enhanced:
 
 - **Audio Playback**: Sentence-by-sentence dictation with speed control
 - **Live Feedback**: Real-time character-level comparison with proper word positioning
-- **German Characters**: Comprehensive automatic conversion (ae→ä, oe→ö, ue→ü, B→ß)
-  - Handles all capitalization patterns: `tuer`→`tür`, `Tuer`→`Tür`, `TUER`→`TÜR`, `tuEr`→`tür`
+- **German Characters**: Always-visible ä, ö, ü, and ß buttons on desktop and mobile
+  - Slash shortcuts convert `a/`, `o/`, `u/`, and `s/` without changing real letter combinations
 - **Focus Mode**: Toggle live feedback colors while maintaining positioning
 - **Punctuation Display**: Grey punctuation marks shown in both live feedback and results
 - **Keyboard Shortcuts**: Full keyboard navigation
@@ -75,10 +75,10 @@ All original features are preserved and enhanced:
 
 ### Recent Enhancements (vs Original)
 
-1. **Comprehensive German Character Conversion**
-   - All capitalization patterns: `tuer`, `Tuer`, `TUER`, `tuEr`, `fUehren`, `Ueberfahr`
-   - Mixed case handling: `TuEr`→`Tür`, `HoEren`→`Hören`
-   - Proper case preservation for nouns and sentence starts
+1. **German Character Input**
+   - Always-visible character buttons on desktop and mobile
+   - Slash shortcuts for ä, ö, ü, and ß
+   - Real combinations such as `ae`, `oe`, and `ue` remain unchanged
 
 2. **Enhanced Live Feedback**
    - Proper word positioning showing context within full sentence
