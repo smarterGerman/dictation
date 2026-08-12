@@ -24,9 +24,9 @@ export class DictationApp {
         this.statistics = new Statistics();
         this.exporter = new Exporter();
         this.tutorial = null;
-        // Tutorial mode: the lesson-01 Teachable embeds pass ?tutorial=1.
-        // Without it the tutorial is never constructed and the launcher
-        // button stays hidden, so the ordinary tool is untouched.
+        this.tutorialLoadPromise = null;
+        // Dedicated tutorial embeds preload the tutorial. Other embeds keep
+        // the launcher available and load the module after its first click.
         this.tutorialMode = new URLSearchParams(window.location.search).get('tutorial') === '1';
         
         // Initialization flag
@@ -55,13 +55,13 @@ export class DictationApp {
             this.audioPlayer = new AudioPlayer(audioElement);
             this.audioPlayer.initializeElements();
 
-            // Tutorial (the 8 lesson-01 embeds pass ?tutorial=1). Loaded on
-            // demand so the 1,599 ordinary embeds never download the module.
+            // Keep the launcher available in every embed. Dedicated tutorial
+            // embeds preload the module, while ordinary embeds load it only
+            // after the learner clicks the launcher.
+            this.setupTutorialLauncher();
             if (this.tutorialMode) {
                 try {
-                    const { Tutorial } = await import('./modules/tutorial.js');
-                    this.tutorial = new Tutorial(this);
-                    this.setupTutorialLauncher();
+                    await this.loadTutorial();
                 } catch (e) {
                     console.error('Tutorial failed to load', e);
                 }
@@ -522,6 +522,27 @@ export class DictationApp {
     }
     
     /**
+     * Load and initialize the tutorial once
+     */
+    async loadTutorial() {
+        if (this.tutorial) return this.tutorial;
+
+        if (!this.tutorialLoadPromise) {
+            this.tutorialLoadPromise = import('./modules/tutorial.js')
+                .then(({ Tutorial }) => {
+                    this.tutorial = new Tutorial(this);
+                    return this.tutorial;
+                })
+                .catch((error) => {
+                    this.tutorialLoadPromise = null;
+                    throw error;
+                });
+        }
+
+        return this.tutorialLoadPromise;
+    }
+
+    /**
      * Setup tutorial launcher button
      */
     setupTutorialLauncher() {
@@ -534,11 +555,12 @@ export class DictationApp {
             return;
         }
         tutorialBtn.hidden = false;
-        DOMHelpers.addEventListener(tutorialBtn, 'click', () => {
-            if (this.tutorial) {
-                this.tutorial.start();
-            } else {
-                console.warn('Tutorial not initialized yet');
+        DOMHelpers.addEventListener(tutorialBtn, 'click', async () => {
+            try {
+                const tutorial = await this.loadTutorial();
+                tutorial.start();
+            } catch (e) {
+                console.error('Tutorial failed to load', e);
             }
         });
     }
