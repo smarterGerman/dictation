@@ -16,7 +16,7 @@ body {
 }
 
 .container {
-    max-width: 100%;
+    max-width: 800px;
     width: 100%;
     height: calc(100% - 40px);
     margin: 0 auto;
@@ -406,7 +406,7 @@ body {
     padding: 0;
     background: #fff;
     color: #333;
-    border: 2px solid #F04E23;
+    border: 2px solid #e879f9;
     border-radius: 12px;
     font: inherit;
     font-size: 21px;
@@ -418,7 +418,7 @@ body {
 
 @media (hover: hover) {
     .german-character-btn:hover {
-        background: #F04E23;
+        background: #e879f9;
         color: #fff;
     }
 }
@@ -429,7 +429,7 @@ body {
 }
 
 .german-character-btn:active {
-    background: #333;
+    background: #c084fc;
     color: #fff;
 }
 
